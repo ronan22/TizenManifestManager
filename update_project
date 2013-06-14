@@ -1,0 +1,24 @@
+#!/bin/sh
+PROJECT="Tizen:service"
+WORKINKDIR="/home/ronanguirec/Documents/obs.vannes"
+ARCH=${x86_64}
+PROJECT_URL="http://download.tizen.org/snapshots/tizen/common/latest/"
+
+mkdir -p ${WORKINKDIR}
+pushd ${WORKINKDIR}
+if [ ! -d ${WORKINKDIR}/${PROJECT} ];then
+  osc -A https://obs.vannes:444 co ${PROJECT}
+fi
+cd ${PROJECT}
+osc up
+cd ..
+
+MANIFEST_FILE=`/home/ronanguirec/Documents/gitProject/TizenManifestManager/download_manifest.py ${PROJECT_URL} ${ARCH}`
+echo /home/ronanguirec/Documents/gitProject/TizenManifestManager/create_package_from_manifest.py ${WORKINKDIR}/${MANIFEST_FILE} review.tizen.org ${WORKINKDIR}/${PROJECT}
+/home/ronanguirec/Documents/gitProject/TizenManifestManager/create_package_from_manifest.py ${WORKINKDIR}/${MANIFEST_FILE} review.tizen.org ${WORKINKDIR}/${PROJECT}
+
+cd ${PROJECT}
+osc -A https://obs.vannes:444 commit -m "- commit MANIFEST_FILE ${MANIFEST_FILE} ."
+cd ..
+
+popd
