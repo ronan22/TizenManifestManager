@@ -83,13 +83,13 @@ It supports downloading from git repositories by gbp.
 %install
 mkdir -p %{buildroot}%{_bindir}
 cp create_package_from_manifest.py %{buildroot}%{_bindir}
-ln -s create_package_from_manifest %{buildroot}%{_bindir}/create_package_from_manifest.py
+ln -s create_package_from_manifest.py %{buildroot}%{_bindir}/create_package_from_manifest
 
 cp download_manifest.py  %{buildroot}%{_bindir}
-ln -s download_manifest %{buildroot}%{_bindir}/download_manifest.py
+ln -s download_manifest.py %{buildroot}%{_bindir}/download_manifest
 
 cp find_spec_file.py  %{buildroot}%{_bindir}
-ln -s find_spec_file %{buildroot}%{_bindir}/find_spec_file.py
+ln -s find_spec_file.py %{buildroot}%{_bindir}/find_spec_file
 
 cp update_project %{buildroot}%{_bindir}
 
@@ -97,7 +97,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/%{name}
 install -m 0644 update_project.conf %{buildroot}%{_sysconfdir}/%{name}
 
 cp update_project_manager.py %{buildroot}%{_bindir}
-ln -s update_project_manager %{buildroot}%{_bindir}/update_project_manager.py
+ln -s update_project_manager.py %{buildroot}%{_bindir}/update_project_manager
 
 mkdir -p %{buildroot}%{_prefix}/lib/obs/service
 install -m 0755 %{service} %{buildroot}%{_prefix}/lib/obs/service
