@@ -47,16 +47,33 @@ Source:         %{name}-%{version}.tar.gz
 BuildRequires:  bzr
 BuildRequires:  git
 BuildRequires:  python >= 2.6
-Requires:       bzr
-Requires:       git
-Requires:       git-buildpackage-rpm
+
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildArch:      noarch
 
-%description
+Requires:	%{service} 
+Requires:	osc 
+
+%description 
 This is a source service for openSUSE Build Service.
 
 It supports downloading from git repositories by gbp.
+
+
+
+%package -n %{service}
+Summary:        An OBS source service: checkout or update a tar ball from git by gbp.
+Group:          Development/Tools/Building
+Requires:       bzr
+Requires:       git
+Requires:       git-buildpackage-rpm
+
+%description -n %{service}
+This is a source service for openSUSE Build Service.
+
+It supports downloading from git repositories by gbp.
+
+
 
 %prep
 %setup -q
@@ -64,6 +81,24 @@ It supports downloading from git repositories by gbp.
 %build
 
 %install
+mkdir -p %{buildroot}%{_bindir}
+cp create_package_from_manifest.py %{buildroot}%{_bindir}
+ln -s create_package_from_manifest %{buildroot}%{_bindir}/create_package_from_manifest.py
+
+cp download_manifest.py  %{buildroot}%{_bindir}
+ln -s download_manifest %{buildroot}%{_bindir}/download_manifest.py
+
+cp find_spec_file.py  %{buildroot}%{_bindir}
+ln -s find_spec_file %{buildroot}%{_bindir}/find_spec_file.py
+
+cp update_project %{buildroot}%{_bindir}
+
+mkdir -p %{buildroot}%{_sysconfdir}/%{name}
+install -m 0644 update_project.conf %{buildroot}%{_sysconfdir}/%{name}
+
+cp update_project_manager.py %{buildroot}%{_bindir}
+ln -s update_project_manager %{buildroot}%{_bindir}/update_project_manager.py
+
 mkdir -p %{buildroot}%{_prefix}/lib/obs/service
 install -m 0755 %{service} %{buildroot}%{_prefix}/lib/obs/service
 install -m 0644 %{service}.service %{buildroot}%{_prefix}/lib/obs/service
@@ -71,8 +106,28 @@ install -m 0644 %{service}.service %{buildroot}%{_prefix}/lib/obs/service
 mkdir -p %{buildroot}%{_sysconfdir}/obs/services
 install -m 0644 %{service}.conf %{buildroot}%{_sysconfdir}/obs/services/%{service}
 
+%files -n %{service}
+%defattr(-,root,root)
+%{_bindir}/create_package_from_manifest
+%{_bindir}/create_package_from_manifest.py
 
-%files
+%{_bindir}/download_manifest
+%{_bindir}/download_manifest.py
+
+%{_bindir}/find_spec_file
+%{_bindir}/find_spec_file.py
+
+%{_bindir}/update_project
+
+%dir %{_sysconfdir}/%{name}
+%config(noreplace) %{_sysconfdir}/%{name}/*
+
+%{_bindir}/update_project_manager
+%{_bindir}/update_project_manager.py
+
+
+
+%files -n %{service}
 %defattr(-,root,root)
 %dir %{_prefix}/lib/obs
 %{_prefix}/lib/obs/service
