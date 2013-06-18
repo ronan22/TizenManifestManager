@@ -120,7 +120,7 @@ install -m 0644 %{service}.conf %{buildroot}%{_sysconfdir}/obs/services/%{servic
 %{_bindir}/update_project
 
 %dir %{_sysconfdir}/%{name}
-%config(noreplace) %{_sysconfdir}/%{name}/*
+%config(noreplace) %{_sysconfdir}/%{name}/update_project.conf
 
 %{_bindir}/update_project_manager
 %{_bindir}/update_project_manager.py
@@ -136,4 +136,3 @@ install -m 0644 %{service}.conf %{buildroot}%{_sysconfdir}/obs/services/%{servic
 %config(noreplace) %{_sysconfdir}/obs/services/*
 
 %changelog
-- init package
