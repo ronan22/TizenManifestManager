@@ -37,7 +37,7 @@ class update_project_manager_config( object ):
     '''
     def __init__( self ):
         self.__config_parser = ConfigParser.ConfigParser()
-        file_conf = "/home/ronanguirec/Documents/gitProject/TizenManifestManager/update_project.conf"
+        file_conf = "/etc/TizenManifestManager/update_project.conf"
 
         if os.path.isfile( file_conf ):
             self.__config_file = open( file_conf , 'rw' )

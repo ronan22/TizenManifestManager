@@ -1,6 +1,6 @@
 #!/bin/sh
-WORKINKDIR="/home/ronanguirec/Documents/obs.vannes"
-OBS_API=https://obs.vannes:444
+WORKINKDIR="/tmp/obs"
+OBS_API=
 OSC_CMD="osc"
 RM_CMD="rm"
 
@@ -9,6 +9,10 @@ if  [ -z ${OBS_API} ] ; then
   exit 1
 fi
 
+if  [ -z ${OBS_API} ] ; then
+  echo no API configurate for the OBS, please set OBS_API parameter.
+  exit 1
+fi
 
 mkdir -p ${WORKINKDIR}
 pushd ${WORKINKDIR}

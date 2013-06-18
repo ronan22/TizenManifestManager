@@ -12,7 +12,6 @@
 
 SERVICE='gbp_git'
 
-#Add by Ronan 25/03/2013 17:22
 CACHEDIRECTORY="/srv/obs/CACHEDIRECTORY"
 
 for DIRECTORY in incoming repo repourl ; do
