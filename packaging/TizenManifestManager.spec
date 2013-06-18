@@ -71,7 +71,7 @@ install -m 0644 %{service}.service %{buildroot}%{_prefix}/lib/obs/service
 mkdir -p %{buildroot}%{_sysconfdir}/obs/services
 install -m 0644 %{service}.conf %{buildroot}%{_sysconfdir}/obs/services/%{service}
 
-%files -n %{service}
+%files
 %defattr(-,root,root)
 %{_bindir}/create_package_from_manifest
 %{_bindir}/create_package_from_manifest.py
