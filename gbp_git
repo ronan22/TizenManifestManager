@@ -10,23 +10,23 @@
 # of the License, or (at your option) any later version.  
 # See http://www.gnu.org/licenses/gpl-2.0.html for full license text.  
 
-SERVICE='tar_scm'
+SERVICE='gbp_git'
 
 #Add by Ronan 25/03/2013 17:22
 CACHEDIRECTORY="/srv/obs/CACHEDIRECTORY"
 
+for DIRECTORY in incoming repo repourl ; do
+  if [ -d ${CACHEDIRECTORY}/${DIRECTORY} ]; then
+    mkdir -p ${CACHEDIRECTORY}/${DIRECTORY} ;
+  fi
+done
+
 set_default_params () {
-  MYSCM=""
+  MYSCM="git"
   MYURL=""
-  MYVERSION="_auto_"
-  MYFORMAT=""
-  MYPREFIX=""
   MYFILENAME=""
   MYREVISION=""
-  MYPACKAGEMETA=""
-  USE_SUBMODULES=enable
-#  MYHISTORYDEPTH=""
-  INCLUDES=""
+  GIT_CLONE="git clone"
 }
 
 get_config_options () {
@@ -34,73 +34,31 @@ get_config_options () {
   if [ -f /etc/obs/services/$SERVICE ]; then
     . /etc/obs/services/$SERVICE
   fi
-  # config options for this user ?
-  if [ -f "$HOME"/.obs/$SERVICE ]; then
-    . "$HOME"/.obs/$SERVICE
-  fi
+  
 }
 
 parse_params () {
   while test $# -gt 0; do
     case $1 in
-      *-scm)
-        MYSCM="$2"
-        shift
-      ;;
+
       *-url)
         MYURL="$2"
-        shift
-      ;;
-      *-subdir)
-        MYSUBDIR="$2"
         shift
       ;;
       *-revision)
         MYREVISION="$2"
         shift
       ;;
-      *-version)
-        MYVERSION="$2"
-        shift
-      ;;
-      *-include)
-        INCLUDES="$INCLUDES $2"
-        shift
-      ;;
-      *-versionformat)
-        MYFORMAT="$2"
-        shift
-      ;;
-      *-versionprefix)
-        MYPREFIX="$2"
-        shift
-      ;;
-      *-exclude)
-        EXCLUDES="$EXCLUDES --exclude=${2#/}"
-        shift
-      ;;
       *-filename)
         MYFILENAME="${2#/}"
         shift
       ;;
-      *-package-meta)
-        MYPACKAGEMETA="${2#/}"
+      *-package_name)
+        PACKAGE_NAME="$2"
         shift
       ;;
       *-outdir)
         MYOUTDIR="$2"
-        shift
-      ;;
-      *-history-depth)
-        echo "history-depth parameter is obsolete and will be ignored"
-        shift
-      ;;
-      *-submodules)
-        USE_SUBMODULES="$2"
-        shift
-      ;;
-      *-usegbp)
-        USE_GBP="$2"
         shift
       ;;
       *-specFile)
@@ -113,7 +71,7 @@ parse_params () {
       ;;
       *)
         echo "Unknown parameter: $1"
-        echo 'Usage: $SERVICE --scm $SCM --url $URL [--subdir $SUBDIR] [--revision $REVISION] [--version $VERSION] [--include $INCLUDE]* [--exclude $EXCLUDE]* [--versionformat $FORMAT] [--versionprefix $PREFIX] [--filename $FILENAME] [--package-meta $META] [--submodules disable] --outdir $OUT'
+        echo 'Usage: $SERVICE  --url $URL  [--revision $REVISION]  [--package_name $PACKAGE_NAME] --outdir $OUT'
         exit 1
       ;;
     esac
@@ -127,7 +85,7 @@ error () {
 }
 
 debug () {
-  [ -n "$DEBUG_TAR_SCM" ] && echo "$*"
+  [ -n "$DEBUG_GBP_GIT" ] && echo "$*"
 }
 
 safe_run () {
@@ -137,26 +95,22 @@ safe_run () {
 }
 
 sanitise_params () {
-  TAR_VERSION="$MYVERSION"
 
-  if [ -z "$MYSCM" ]; then
-    error "no scm is given via --scm parameter (git/svn/hg/bzr)!"
-  fi
   if [ -z "$MYURL" ]; then
     error "no checkout URL is given via --url parameter!"
   fi
   if [ -z "$MYOUTDIR" ]; then
     error "no output directory is given via --outdir parameter!"
   fi
+  if [ -z "$MYREVISION" ]; then
+    error "no revision is given via --revision parameter!"
+  fi
+  if [ -z "$PACKAGE_NAME" ]; then
+    error "no package_name is given via --package_name parameter!"
+  fi
 
   FILE="$MYFILENAME"
-  WD_VERSION="$MYVERSION"
-  if [ -z "$MYPACKAGEMETA" ]; then
-    EXCLUDES="$EXCLUDES --exclude-vcs"
-  fi
-  # if [ "$MYHISTORYDEPTH" == "full" ]; then
-  #   MYHISTORYDEPTH="999999999"
-  # fi
+
 }
 
 detect_default_filename_param () {
@@ -164,25 +118,15 @@ detect_default_filename_param () {
     return
   fi
 
-  case "$MYSCM" in
-    git)
-      FILE="${MYURL%/}"
-      FILE="${FILE##*/}"
-      FILE="${FILE%.git}"
-      FILE="${FILE#*@*:}"
-      ;;
-    svn|hg|bzr)
-      FILE="${MYURL%/}"
-      FILE="${FILE##*/}"
-      ;;
-    *)
-      error "unknown SCM '$MYSCM'"
-  esac
+  FILE="${MYURL%/}"
+  FILE="${FILE##*/}"
+  FILE="${FILE%.git}"
+  FILE="${FILE#*@*:}"
+
 }
 
 fetch_upstream () {
   TOHASH="$MYURL"
-  [ "$MYSCM" = 'svn' ] && TOHASH="$TOHASH/$MYSUBDIR"
   HASH=`echo "$TOHASH" | sha256sum | cut -d\  -f 1`
   REPOCACHE=
   if [ -n "$CACHEDIRECTORY" ]; then
@@ -193,20 +137,7 @@ fetch_upstream () {
   fi
 
   if [ -z "$MYREVISION" ]; then
-    case "$MYSCM" in
-      git)
-        MYREVISION=master
-        ;;
-      hg)
-        MYREVISION=tip
-        ;;
-      # bzr)
-      #   MYREVISION=HEAD
-      #   ;;
-    esac
-    if [ -n "$MYREVISION" ]; then
-      debug "no revision specified; defaulting to $MYREVISION"
-    fi
+    MYREVISION=master
   fi
 
   debug "check local cache if configured"
@@ -237,9 +168,6 @@ fetch_upstream () {
 
   safe_run cd "$REPOPATH"
   switch_to_revision
-  if [ "$TAR_VERSION" == "_auto_" -o -n "$MYFORMAT" ]; then
-    detect_version
-  fi
 }
 
 calc_dir_to_clone_to () {
@@ -257,37 +185,9 @@ calc_dir_to_clone_to () {
 initial_clone () {
   echo "Fetching from $MYURL ..."
 
-  case "$MYSCM" in
-    git)
-      # Clone with full depth; so that the revision can be found if specified
-      safe_run git clone "$MYURL" "$CLONE_TO"
-      if [ "$USE_SUBMODULES" == "enable" ]; then
-        safe_run cd "$CLONE_TO"
-        safe_run git submodule update --init --recursive
-        safe_run cd ..
-      fi
-      ;;
-    svn)
-      args=
-      [ -n "$MYREVISION" ] && args="-r$MYREVISION"
-      if [[ $(svn --version --quiet) > "1.5.99" ]]; then
-        TRUST_SERVER_CERT="--trust-server-cert"
-      fi
-      safe_run svn checkout --non-interactive $TRUST_SERVER_CERT \
-        $args "$MYURL/$MYSUBDIR" "$CLONE_TO"
-      MYSUBDIR= # repo root is subdir
-      ;;
-    hg)
-      safe_run hg clone "$MYURL" "$CLONE_TO"
-      ;;
-    bzr)
-      args=
-      [ -n "$MYREVISION" ] && args="-r $MYREVISION"
-      safe_run bzr checkout $args "$MYURL" "$CLONE_TO"
-      ;;
-    *)
-      error "unknown SCM '$MYSCM'"
-  esac
+  # Clone with full depth; so that the revision can be found if specified
+  safe_run ${GIT_CLONE} "$MYURL" "$CLONE_TO"
+
 }
 
 cache_repo () {
@@ -313,41 +213,11 @@ check_cache () {
 update_cache () {
   safe_run cd "$REPOCACHE"
 
-  case "$MYSCM" in
-    git)
-      safe_run git fetch --all
-      ;;
-    svn)
-      args=
-      [ -n "$MYREVISION" ] && args="-r$MYREVISION"
-      safe_run svn update $args
-      MYSUBDIR= # repo root is subdir
-      ;;
-    hg)
-      if ! out=`hg pull`; then
-        if [[ "$out" == *'no changes found'* ]]; then
-          # Contrary to the docs, hg pull returns exit code 1 when
-          # there are no changes to pull, but we don't want to treat
-          # this as an error.
-          :
-        else
-          error "hg pull failed; aborting!"
-        fi
-      fi
-      ;;
-    bzr)
-      args=
-      [ -n "$MYREVISION" ] && args="-r$MYREVISION"
-      safe_run bzr update $args
-      ;;
-    *)
-      error "unknown SCM '$MYSCM'"
-  esac
+  safe_run git fetch --all
+
 }
 
 switch_to_revision () {
-  case "$MYSCM" in
-    git)
       # $MYREVISION may refer to any of the following:
       #
       # - explicit SHA1: a1b2c3d4....
@@ -375,72 +245,6 @@ switch_to_revision () {
 	safe_run git reset --hard  "origin/$MYREVISION"
         safe_run git pull
       fi
-      ;;
-    svn|bzr)
-      : # should have already happened via checkout or update
-      ;;
-    hg)
-      safe_run hg update "$MYREVISION"
-      ;;
-    # bzr)
-    #   safe_run bzr update
-    #   if [ -n "$MYREVISION" ]; then
-    #     safe_run bzr revert -r "$MYREVISION"
-    #   fi
-    #   ;;
-    *)
-      error "unknown SCM '$MYSCM'"
-  esac
-}
-
-detect_version () {
-  if [ -z "$MYFORMAT" ]; then
-    case "$MYSCM" in
-      git)
-        MYFORMAT="%ct"
-        ;;
-      hg)
-        MYFORMAT="{rev}"
-        ;;
-      svn|bzr)
-        MYFORMAT="%r"
-        ;;
-      *)
-        error "unknown SCM '$MYSCM'"
-        ;;
-    esac
-  fi
-
-  safe_run cd "$REPOPATH"
-  [ -n "$MYPREFIX" ] && MYPREFIX="$MYPREFIX."
-  get_version
-  TAR_VERSION="$MYPREFIX$version"
-}
-
-get_version () {
-  case "$MYSCM" in
-    git)
-      #version=`safe_run git show --pretty=format:"$MYFORMAT" | head -n 1`
-      MYFORMAT=${MYFORMAT/@PARENT_TAG@/$(git describe --tags --abbrev=0)}
-      version=`safe_run git log -n1 --date=short --pretty=format:"$MYFORMAT"|sed 's@-@@g'`
-      ;;
-    svn)
-      #rev=`LC_ALL=C safe_run svn info | awk '/^Revision:/ { print $2 }'`
-      rev=`LC_ALL=C safe_run svn info | sed -n 's,^Last Changed Rev: \(.*\),\1,p'`
-      version="${MYFORMAT//%r/$rev}"
-      ;;
-    hg)
-      rev=`safe_run hg id -n`
-      version=`safe_run hg log -l1 -r$rev --template "$MYFORMAT"`
-      ;;
-    bzr)
-      #safe_run bzr log -l1 ...
-      rev=`safe_run bzr revno`
-      version="${MYFORMAT//%r/$rev}"
-      ;;
-    *)
-      error "unknown SCM '$MYSCM'"
-  esac
 }
 
 prep_tree_for_tar () {
@@ -448,17 +252,11 @@ prep_tree_for_tar () {
     error "directory does not exist: $REPOPATH/$MYSUBDIR"
   fi
 
-  if [ -z "$TAR_VERSION" ]; then
-    TAR_BASENAME="$FILE"
-  else
-    TAR_BASENAME="${FILE}-${TAR_VERSION}"
-  fi
+  TAR_BASENAME="$FILE"
+
 
   MYINCLUDES=""
 
-  for INC in $INCLUDES; do
-    MYINCLUDES="$MYINCLUDES $TAR_BASENAME/$INC"
-  done
   if [ -z "$MYINCLUDES" ]; then
     MYINCLUDES="$TAR_BASENAME"
   fi
@@ -474,14 +272,6 @@ prep_tree_for_tar () {
   fi
 }
 
-create_tar () {
-  TARFILE="${TAR_BASENAME}.tar"
-  TARPATH="$MYOUTDIR/$TARFILE"
-  debug tar --owner=root --group=root -cf "$TARPATH" $EXCLUDES $MYINCLUDES
-  safe_run tar --owner=root --group=root -cf "$TARPATH" $EXCLUDES $MYINCLUDES
-  echo "Created $TARFILE"
-}
-
 cleanup () {
   debug rm -rf "$TAR_BASENAME"
   rm -rf $TAR_BASENAME
@@ -489,26 +279,24 @@ cleanup () {
 
 create_gbp () {
    safe_run cd $TAR_BASENAME
+   
    if [ -z "$USE_SPECFILE" ] ; then
-      echo git-buildpackage-rpm export --git-export-only --git-ignore-new --git-builder=osc --git-upstream-branch=upstream --git-export-dir="$MYOUTDIR" --git-packaging-dir=packaging --git-export="$MYREVISION" --git-upstream-branch=upstream --git-upstream-tag="upstream/%( )s" $GBP_OPTION >/tmp/test_gbp_service_nospec
-      git-buildpackage-rpm export --git-export-only --git-ignore-new --git-builder=osc --git-upstream-branch=upstream --git-export-dir="$MYOUTDIR" --git-packaging-dir=packaging --git-export="$MYREVISION" --git-upstream-branch=upstream --git-upstream-tag="upstream/%( )s" $GBP_OPTION || exit 1
-   else
-      echo git-buildpackage-rpm export --git-export-only --git-ignore-new --git-builder=osc --git-upstream-branch=upstream --git-export-dir="$MYOUTDIR" --git-packaging-dir=packaging --git-export="$MYREVISION" --git-upstream-branch=upstream --git-upstream-tag="upstream/%( )s" --git-spec-file="$USE_SPECFILE" $GBP_OPTION >/tmp/test_gbp_service_spec
-      git-buildpackage-rpm export --git-export-only --git-ignore-new --git-builder=osc --git-upstream-branch=upstream --git-export-dir="$MYOUTDIR" --git-packaging-dir=packaging --git-export="$MYREVISION" --git-upstream-branch=upstream --git-upstream-tag="upstream/%( )s" --git-spec-file="$USE_SPECFILE" $GBP_OPTION || exit 1
-  fi
+      echo find_spec_file ${TAR_BASENAME} ${PACKAGE_NAME} > /tmp/test_log
+      
+      USE_SPECFILE=`find_spec_file ${MYOUTDIR}/${TAR_BASENAME} ${PACKAGE_NAME}`
+   fi  
+   
+   git-buildpackage-rpm export --git-export-only --git-ignore-new --git-builder=osc --git-upstream-branch=upstream --git-export-dir="$MYOUTDIR" --git-packaging-dir=packaging --git-export="$MYREVISION" --git-upstream-branch=upstream --git-upstream-tag="upstream/%( )s" --git-spec-file="$USE_SPECFILE" $GBP_OPTION || exit 1
+
 
    safe_run cd ..
 }
 
 main () {
   set_default_params
-  if [ -z "$DEBUG_TAR_SCM" ]; then
-    get_config_options
-  else
-    # We're in test-mode, so don't let any local site-wide
-    # or per-user config impact the test suite.
-    :
-  fi
+
+  get_config_options
+
   parse_params "$@"
   sanitise_params
 
@@ -519,11 +307,9 @@ main () {
   fetch_upstream
  
   prep_tree_for_tar
-  if [ -z "$USE_GBP" ]; then
-     create_tar
-  else
-     create_gbp
-  fi
+  
+  create_gbp
+  
   cleanup
 }
 

@@ -1,17 +1,41 @@
 #!/usr/bin/env python
 
+#
+# Copyright 2013, Intel Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Library General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+
+'''
+Created on 14 nov. 2013
+
+@author: Ronan Le Martret
+
+'''
 import os
 import sys
 from xml.etree import ElementTree
 
 _service = """<services>
-  <service name=\"tar_scm\">
-  <param name=\"url\">%s:%s</param>
-   <param name=\"revision\">%s</param>
-   <param name=\"scm\">git</param>
-    <param name=\"usegbp\">yes</param>
-  </service>
+  <service name="gbp_git">
+  <param name="url">%s:%s</param>
+   <param name="revision">%s</param>
+   <param name="package_name">%s</param>
+   </service>
 </services>"""
+
+
 
 def clean_name( raw_name ):
     if "/" in raw_name:
@@ -52,11 +76,27 @@ def parse_manifest_xml( src ):
 
     return remote, packages_dico
 
-def create_service( remote, path, revision ):
-    return _service % ( remote, path, revision )
+def make_alias_package( packages_dico ):
+    alias_package = {}
+    alias_package["python-rpm"] = "rpm"
+    alias_package["python-libxml2"] = "libxml2"
+    alias_package["python-magic"] = "file"
+    alias_package["cross-arm-binutils"] = "binutils"
+    alias_package["cross-armv7hl-gcc47-icecream-backend"] = "gcc47"
+
+    for alias in alias_package.keys():
+        if alias_package[alias] in packages_dico.keys() and \
+           alias not in packages_dico.keys():
+            packages_dico[alias]=packages_dico[alias_package[alias]]
+            
+    return packages_dico
+
+
+def create_service( remote, path, revision, package_name ):
+    return _service % ( remote, path, revision, package_name )
 
 def write_package_service( remote, project_dir, package_name , package_path, package_revision ):
-    service = create_service( remote, package_path, package_revision )
+    service = create_service( remote, package_path, package_revision, package_name )
     pkgPath = project_dir + "/" + package_name
     pkgPathSrv = pkgPath + "/_service"
 
@@ -71,21 +111,22 @@ def write_package_service( remote, project_dir, package_name , package_path, pac
 
 def main():
     if len( sys.argv ) < 2 :
-        error_message = "%s take on parameter at least one parameter, the manifest.xml path."
+        error_message = "%s take on parameter at least 2 parameters,  manifest.xml path [remote_git]."
         print  error_message % ( sys.argv[0] )
         sys.exit( 1 )
 
     manifest_xml_src = sys.argv[1]
 
-    if len( sys.argv ) >= 3 :
-        remote_default = sys.argv[2]
-    else:
-        remote_default = None
 
-    if len( sys.argv ) >= 4 :
-        project_dir = os.path.abspath( sys.argv[3] )
+    if len( sys.argv ) >= 3 :
+        project_dir = os.path.abspath( sys.argv[2] )
     else:
         project_dir = os.path.abspath( os.curdir )
+
+    if len( sys.argv ) >= 4 :
+        remote_default = sys.argv[3]
+    else:
+        remote_default = None
 
     if not os.path.isdir( project_dir ):
         error_message = "%s is not a directory."
@@ -97,9 +138,10 @@ def main():
         print  error_message % ( project_dir )
         sys.exit( 1 )
 
-
-
     remote, packages_dico = parse_manifest_xml( manifest_xml_src )
+
+    packages_dico = make_alias_package( packages_dico )
+
 
     if remote_default is not None:
         remote = remote_default

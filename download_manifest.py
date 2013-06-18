@@ -1,5 +1,28 @@
 #!/usr/bin/env python
 
+#
+# Copyright 2013, Intel Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Library General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+
+'''
+Created on 14 nov. 2013
+
+@author: Ronan Le Martret
+
+'''
 
 from urllib import urlopen
 import sys
@@ -51,6 +74,11 @@ def get_project_arch( xml ):
 
 
 def main():
+    if len( sys.argv ) < 2 :
+        error_message = "%s take 2 parameters at least one parameter, project_base_url and arch."
+        print  error_message % ( sys.argv[0] )
+        sys.exit( 1 )
+
     project_base_url = sys.argv[1]
 
     if len( sys.argv ) >= 3:

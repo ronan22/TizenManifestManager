@@ -1,24 +1,94 @@
 #!/bin/sh
-PROJECT="Tizen:service"
 WORKINKDIR="/home/ronanguirec/Documents/obs.vannes"
-ARCH=${x86_64}
-PROJECT_URL="http://download.tizen.org/snapshots/tizen/common/latest/"
+OBS_API=https://obs.vannes:444
+OSC_CMD="osc"
+RM_CMD="rm"
+
+if  [ -z ${OBS_API} ] ; then
+  echo no API configurate for the OBS, please set OBS_API parameter.
+  exit 1
+fi
+
 
 mkdir -p ${WORKINKDIR}
 pushd ${WORKINKDIR}
-if [ ! -d ${WORKINKDIR}/${PROJECT} ];then
-  osc -A https://obs.vannes:444 co ${PROJECT}
+
+PROJECT_LIST=`update_project_manager list_project`
+if [ ! $? == 0 ] ; then 
+  echo command \"update_project_manager list_project\" failed.
+  exit 1
 fi
-cd ${PROJECT}
-osc up
-cd ..
 
-MANIFEST_FILE=`/home/ronanguirec/Documents/gitProject/TizenManifestManager/download_manifest.py ${PROJECT_URL} ${ARCH}`
-echo /home/ronanguirec/Documents/gitProject/TizenManifestManager/create_package_from_manifest.py ${WORKINKDIR}/${MANIFEST_FILE} review.tizen.org ${WORKINKDIR}/${PROJECT}
-/home/ronanguirec/Documents/gitProject/TizenManifestManager/create_package_from_manifest.py ${WORKINKDIR}/${MANIFEST_FILE} review.tizen.org ${WORKINKDIR}/${PROJECT}
-
-cd ${PROJECT}
-osc -A https://obs.vannes:444 commit -m "- commit MANIFEST_FILE ${MANIFEST_FILE} ."
-cd ..
-
+for PROJECT in ${PROJECT_LIST}; do
+  
+  if [ ! -d ${WORKINKDIR}/${PROJECT} ] ; then
+    ${OSC_CMD} -A ${OBS_API} co ${PROJECT}
+  fi
+  cd ${PROJECT}
+  #update all the project package.
+  ${OSC_CMD} up
+  osc meta prj ${PROJECT} > /tmp/meta_prj
+  echo 
+  echo osc meta prj ${PROJECT} \> /tmp/meta_prj
+  PROJECT_IS_DISABLE=`update_project_manager project_is_disable /tmp/meta_prj`
+  
+  ${RM_CMD} /tmp/meta_prj
+  if [ -z ${PROJECT_IS_DISABLE} ] ;then
+    ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=disable"
+  fi
+  
+  OLD_PKG_LIST=`ls | grep -v .osc`
+  cd ..
+  
+  ARCH=`update_project_manager get_arch ${PROJECT}`
+  DEFAULT_GIT_SRC=`update_project_manager get_default_git_src ${PROJECT}`
+  NEW_PKG_LIST=""
+  
+  MANIFEST_LIST=`update_project_manager get_manifest_list ${PROJECT}`
+  if [ ! $? == 0 ] ; then 
+    echo command \"update_project_manager get_manifest_list ${PROJECT}\" failed.
+    exit 1
+  fi
+  
+  for MANIFEST in ${MANIFEST_LIST} ; do
+    MANIFEST_FILE=`update_project_manager get_manifest_file ${PROJECT} ${MANIFEST}`
+    if [ ! $? == 0 ] ; then 
+      echo command \"update_project_manager get_manifest_file ${PROJECT} ${MANIFEST}\" failed.
+      exit 1
+    fi
+    
+    if [[ ${MANIFEST_FILE} =~ ^http.*$ ]] ; then
+      MANIFEST_FILE=${WORKINKDIR}/`download_manifest ${MANIFEST_FILE} ${ARCH}`
+    fi
+    NEW_PKG_LIST=${NEW_PKG_LIST}+`update_project_manager list_package ${MANIFEST_FILE}`+" "
+    create_package_from_manifest ${MANIFEST_FILE} ${WORKINKDIR}/${PROJECT} ${DEFAULT_GIT_SRC}
+  done
+  
+  cd ${PROJECT}
+  for new_package in `osc status | grep '?' | cut -d ' ' -f 5`;do
+    #add new package.
+    ${OSC_CMD} add ${new_package};
+  done
+  echo ${OLD_PKG_LIST} | tr ' ' '\n' | sort > /tmp/old_pkg_file.txt
+  echo ${NEW_PKG_LIST} | tr ' ' '\n' | sort > /tmp/new_pkg_file.txt
+  echo comm -23  /tmp/old_pkg_file.txt /tmp/new_pkg_file.txt
+  PACKAGE_TO_DEL=`comm -23  /tmp/old_pkg_file.txt /tmp/new_pkg_file.txt`
+  ${RM_CMD} /tmp/old_pkg_file.txt
+  ${RM_CMD} /tmp/new_pkg_file.txt
+  for old_package in ${PACKAGE_TO_DEL} ; do
+    #remove unused package.
+    ${OSC_CMD} rm ${old_package};
+  done
+  
+  #commit all change
+  ${OSC_CMD} commit -m "- commit update_project `date` ."
+  
+  
+  if [ -z ${PROJECT_IS_DISABLE} ] ;then
+    ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=enable"
+  fi
+  
+  cd ..
+  
+done
 popd
