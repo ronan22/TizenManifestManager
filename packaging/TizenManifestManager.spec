@@ -3,7 +3,7 @@
 Name:           TizenManifestManager
 Version:        0.1
 Release:        1
-Summary:        An OBS source service: checkout or update a tar ball from git by gbp.
+Summary:        An OBS source service: checkout or update a tar ball from git by gbp
 License:        GPL-2.0+
 Group:          Development/Tools/Building
 Url:            https://github.com/ronan22/TizenManifestManager
@@ -27,7 +27,7 @@ It supports downloading from git repositories by gbp.
 
 
 %package -n %{service}
-Summary:        An OBS source service: checkout or update a tar ball from git by gbp.
+Summary:        An OBS source service: checkout or update a tar ball from git by gbp
 Group:          Development/Tools/Building
 Requires:       bzr
 Requires:       git
