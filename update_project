@@ -9,11 +9,6 @@ if  [ -z ${OBS_API} ] ; then
   exit 1
 fi
 
-if  [ -z ${OBS_API} ] ; then
-  echo no API configurate for the OBS, please set OBS_API parameter.
-  exit 1
-fi
-
 mkdir -p ${WORKINKDIR}
 pushd ${WORKINKDIR}
 
@@ -32,8 +27,7 @@ for PROJECT in ${PROJECT_LIST}; do
   #update all the project package.
   ${OSC_CMD} up
   osc meta prj ${PROJECT} > /tmp/meta_prj
-  echo 
-  echo osc meta prj ${PROJECT} \> /tmp/meta_prj
+  
   PROJECT_IS_DISABLE=`update_project_manager project_is_disable /tmp/meta_prj`
   
   ${RM_CMD} /tmp/meta_prj
@@ -64,7 +58,7 @@ for PROJECT in ${PROJECT_LIST}; do
     if [[ ${MANIFEST_FILE} =~ ^http.*$ ]] ; then
       MANIFEST_FILE=${WORKINKDIR}/`download_manifest ${MANIFEST_FILE} ${ARCH}`
     fi
-    NEW_PKG_LIST=${NEW_PKG_LIST}+`update_project_manager list_package ${MANIFEST_FILE}`+" "
+    NEW_PKG_LIST="${NEW_PKG_LIST} `update_project_manager list_package ${MANIFEST_FILE}` "
     create_package_from_manifest ${MANIFEST_FILE} ${WORKINKDIR}/${PROJECT} ${DEFAULT_GIT_SRC}
   done
   

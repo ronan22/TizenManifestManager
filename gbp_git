@@ -287,7 +287,6 @@ create_gbp () {
    
    git-buildpackage-rpm export --git-export-only --git-ignore-new --git-builder=osc --git-upstream-branch=upstream --git-export-dir="$MYOUTDIR" --git-packaging-dir=packaging --git-export="$MYREVISION" --git-upstream-branch=upstream --git-upstream-tag="upstream/%( )s" --git-spec-file="$USE_SPECFILE" $GBP_OPTION || exit 1
 
-
    safe_run cd ..
 }
 

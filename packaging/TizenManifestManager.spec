@@ -59,7 +59,7 @@ ln -s find_spec_file.py %{buildroot}%{_bindir}/find_spec_file
 cp update_project %{buildroot}%{_bindir}
 
 mkdir -p %{buildroot}%{_sysconfdir}/%{name}
-install -m 0644 update_project.conf %{buildroot}%{_sysconfdir}/%{name}
+install -m 0666 update_project.conf %{buildroot}%{_sysconfdir}/%{name}
 
 cp update_project_manager.py %{buildroot}%{_bindir}
 ln -s update_project_manager.py %{buildroot}%{_bindir}/update_project_manager
