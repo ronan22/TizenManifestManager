@@ -1,18 +1,57 @@
 #!/bin/sh
-WORKINKDIR="/tmp/obs"
+#
+# Copyright 2013, Intel Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Library General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+# native
+
+#author: Ronan Le Martret ronan@fridu.net
+
+
+WORKINGDIR="/tmp/obs"
 OBS_API=
 OSC_CMD="osc"
 RM_CMD="rm"
 
+#Source the default parameter for update_project.
+if [ -f ${HOME}/.update_projectrc ] ; then
+   source ${HOME}/.update_projectrc
+else
+   #If .update_projectrc is create create empty file.
+   echo No file ${HOME}/.update_projectrc, create it.
+   touch ${HOME}/.update_projectrc
+   echo '#set the WORKINGDIR  for update_project'
+   echo 'WORKINGDIR="/tmp/obs"' >> ${HOME}/.update_projectrc
+   echo '# set the OBS API'
+   echo 'OBS_API=' >> ${HOME}/.update_projectrc
+fi
+
+#If no OBS_API exit.
 if  [ -z ${OBS_API} ] ; then
   echo no API configurate for the OBS, please set OBS_API parameter.
   exit 1
 fi
 
-mkdir -p ${WORKINKDIR}
-pushd ${WORKINKDIR}
+#Create the WORKINGDIR directory. 
+if [ ! -d ${WORKINGDIR} ] ; then
+    mkdir -p ${WORKINGDIR}
+fi
 
-PROJECT_LIST=`update_project_manager list_project`
+pushd ${WORKINGDIR}
+
+#check the list of project.
+PROJECT_LIST=$(update_project_manager list_project)
 if [ ! $? == 0 ] ; then 
   echo command \"update_project_manager list_project\" failed.
   exit 1
@@ -20,59 +59,85 @@ fi
 
 for PROJECT in ${PROJECT_LIST}; do
   
-  if [ ! -d ${WORKINKDIR}/${PROJECT} ] ; then
+  if [ ! -d ${WORKINGDIR}/${PROJECT} ] ; then
+    echo checkout project ${PROJECT}
     ${OSC_CMD} -A ${OBS_API} co ${PROJECT}
+    cd ${PROJECT}
+  else
+    cd ${PROJECT}
+    echo update project ${PROJECT}
+    #update all the project package.
+    ${OSC_CMD} up
   fi
-  cd ${PROJECT}
-  #update all the project package.
-  ${OSC_CMD} up
+
+  # check if the project is disable.
   osc meta prj ${PROJECT} > /tmp/meta_prj
-  
-  PROJECT_IS_DISABLE=`update_project_manager project_is_disable /tmp/meta_prj`
-  
+  PROJECT_WAS_DISABLE=`update_project_manager project_is_disable /tmp/meta_prj`
   ${RM_CMD} /tmp/meta_prj
-  if [ -z ${PROJECT_IS_DISABLE} ] ;then
+  
+  PROJECT_IS_DISABLE=
+  if [ -z ${PROJECT_WAS_DISABLE} ] ;then
+    #if the is not already disable, disable it.
     ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=disable"
+    PROJECT_IS_DISABLE="yes"
   fi
   
+  #Before update do an update, check and store the current package
   OLD_PKG_LIST=`ls | grep -v .osc`
   cd ..
   
+  #ARCH is optional
   ARCH=`update_project_manager get_arch ${PROJECT}`
+  #DEFAULT_GIT_SRC is optional and replace the default git server url of the the manifest.xml
   DEFAULT_GIT_SRC=`update_project_manager get_default_git_src ${PROJECT}`
-  NEW_PKG_LIST=""
   
+  #Get the manifest list from conf file
   MANIFEST_LIST=`update_project_manager get_manifest_list ${PROJECT}`
   if [ ! $? == 0 ] ; then 
     echo command \"update_project_manager get_manifest_list ${PROJECT}\" failed.
+    [ -n ${PROJECT_IS_DISABLE} ] && ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=enable"
     exit 1
   fi
   
+  NEW_PKG_LIST=""
   for MANIFEST in ${MANIFEST_LIST} ; do
+    #Get the Manifest file or a project URL.
+    echo update_project_manager get_manifest_file ${PROJECT} ${MANIFEST}
     MANIFEST_FILE=`update_project_manager get_manifest_file ${PROJECT} ${MANIFEST}`
     if [ ! $? == 0 ] ; then 
       echo command \"update_project_manager get_manifest_file ${PROJECT} ${MANIFEST}\" failed.
+      [ -n ${PROJECT_IS_DISABLE} ] && ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=enable"
       exit 1
     fi
-    
+    #If the Manifest is a project URL download it.
     if [[ ${MANIFEST_FILE} =~ ^http.*$ ]] ; then
-      MANIFEST_FILE=${WORKINKDIR}/`download_manifest ${MANIFEST_FILE} ${ARCH}`
+      MANIFEST_FILE=${WORKINGDIR}/`download_manifest ${MANIFEST_FILE} ${ARCH}`
     fi
+    #Get the new package list
+    echo Get the new package list \"update_project_manager list_package ${MANIFEST_FILE}\"
     NEW_PKG_LIST="${NEW_PKG_LIST} `update_project_manager list_package ${MANIFEST_FILE}` "
-    create_package_from_manifest ${MANIFEST_FILE} ${WORKINKDIR}/${PROJECT} ${DEFAULT_GIT_SRC}
+    
+    #the main part of the script. Generate the service file.
+    echo Generate service file into ${WORKINGDIR}/${PROJECT} directory.
+    echo $(pwd)
+    echo create_package_from_manifest ${MANIFEST_FILE} ${WORKINGDIR}/${PROJECT} ${DEFAULT_GIT_SRC}
+    create_package_from_manifest ${MANIFEST_FILE} ${WORKINGDIR}/${PROJECT} ${DEFAULT_GIT_SRC}
   done
   
+  echo check new package into project ${PROJECT}.
   cd ${PROJECT}
   for new_package in `osc status | grep '?' | cut -d ' ' -f 5`;do
     #add new package.
     ${OSC_CMD} add ${new_package};
   done
+  
+  #check the package need to be deleted.
   echo ${OLD_PKG_LIST} | tr ' ' '\n' | sort > /tmp/old_pkg_file.txt
   echo ${NEW_PKG_LIST} | tr ' ' '\n' | sort > /tmp/new_pkg_file.txt
-  echo comm -23  /tmp/old_pkg_file.txt /tmp/new_pkg_file.txt
   PACKAGE_TO_DEL=`comm -23  /tmp/old_pkg_file.txt /tmp/new_pkg_file.txt`
   ${RM_CMD} /tmp/old_pkg_file.txt
   ${RM_CMD} /tmp/new_pkg_file.txt
+  
   for old_package in ${PACKAGE_TO_DEL} ; do
     #remove unused package.
     ${OSC_CMD} rm ${old_package};
@@ -81,12 +146,10 @@ for PROJECT in ${PROJECT_LIST}; do
   #commit all change
   ${OSC_CMD} commit -m "- commit update_project `date` ."
   
-  
-  if [ -z ${PROJECT_IS_DISABLE} ] ;then
-    ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=enable"
-  fi
+  #Finaly enable the project.
+  [ -n ${PROJECT_IS_DISABLE} ] && ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=enable"
   
   cd ..
-  
 done
+
 popd

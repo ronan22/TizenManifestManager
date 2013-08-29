@@ -17,12 +17,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-'''
-Created on 14 nov. 2013
+# author: Ronan Le Martret ronan@fridu.net
 
-@author: Ronan Le Martret
-
-'''
 import sys
 import os
 
@@ -37,6 +33,7 @@ class update_project_manager_config( object ):
     '''
     def __init__( self ):
         self.__config_parser = ConfigParser.ConfigParser()
+        self.__config_parser.optionxform = str
         file_conf = "/etc/TizenManifestManager/update_project.conf"
 
         if os.path.isfile( file_conf ):
@@ -105,7 +102,6 @@ def parse_manifest_xml( src ):
     primaryFile = open( src, "r" )
     primaryXML = primaryFile.read()
     primaryFile.close()
-
     aElement = ElementTree.fromstring( primaryXML )
     packages_list = []
 

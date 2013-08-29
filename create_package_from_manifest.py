@@ -17,12 +17,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-'''
-Created on 14 nov. 2013
+# author: Ronan Le Martret ronan@fridu.net
 
-@author: Ronan Le Martret
-
-'''
 import os
 import sys
 from xml.etree import ElementTree
@@ -76,22 +72,6 @@ def parse_manifest_xml( src ):
 
     return remote, packages_dico
 
-def make_alias_package( packages_dico ):
-    alias_package = {}
-    alias_package["python-rpm"] = "rpm"
-    alias_package["python-libxml2"] = "libxml2"
-    alias_package["python-magic"] = "file"
-    alias_package["cross-arm-binutils"] = "binutils"
-    alias_package["cross-armv7hl-gcc47-icecream-backend"] = "gcc47"
-
-    for alias in alias_package.keys():
-        if alias_package[alias] in packages_dico.keys() and \
-           alias not in packages_dico.keys():
-            packages_dico[alias]=packages_dico[alias_package[alias]]
-            
-    return packages_dico
-
-
 def create_service( remote, path, revision, package_name ):
     return _service % ( remote, path, revision, package_name )
 
@@ -139,8 +119,6 @@ def main():
         sys.exit( 1 )
 
     remote, packages_dico = parse_manifest_xml( manifest_xml_src )
-
-    packages_dico = make_alias_package( packages_dico )
 
 
     if remote_default is not None:
