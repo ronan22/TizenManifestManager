@@ -85,8 +85,8 @@ install -m 0644 %{service}.conf %{buildroot}%{_sysconfdir}/obs/services/%{servic
 %{_bindir}/update_project
 
 %dir %{_sysconfdir}/%{name}
-%config(noreplace) %{_sysconfdir}/%{name}/update_project.conf
-
+%config(noreplace) %attr(0644,root,root) %{_sysconfdir}/%{name}/update_project.conf
+ 
 %{_bindir}/update_project_manager
 %{_bindir}/update_project_manager.py
 
