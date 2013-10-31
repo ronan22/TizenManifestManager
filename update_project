@@ -22,7 +22,9 @@
 WORKINGDIR="/tmp/obs"
 OBS_API=
 OSC_CMD="osc"
-RM_CMD="rm"
+RM_CMD="rm -fr"
+
+DRYRUN=
 
 #Source the default parameter for update_project.
 if [ -f ${HOME}/.update_projectrc ] ; then
@@ -76,12 +78,13 @@ for PROJECT in ${PROJECT_LIST}; do
   ${RM_CMD} /tmp/meta_prj
   
   PROJECT_IS_DISABLE=
-  if [ -z ${PROJECT_WAS_DISABLE} ] ;then
-    #if the is not already disable, disable it.
-    ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=disable"
-    PROJECT_IS_DISABLE="yes"
+  if [ -z ${DRYRUN} ] ; then  
+      if [ -z ${PROJECT_WAS_DISABLE} ] ;then
+        #if the is not already disable, disable it.
+        ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=disable"
+        PROJECT_IS_DISABLE="yes"
+      fi
   fi
-  
   #Before update do an update, check and store the current package
   OLD_PKG_LIST=`ls | grep -v .osc`
   cd ..
@@ -99,6 +102,14 @@ for PROJECT in ${PROJECT_LIST}; do
     exit 1
   fi
   
+  echo 
+  echo get alias file
+  #The alias file is a simply text file, each line begin with a package name, 
+  #{PKG} follow by package alias {PKG_ALIAS_1} {PKG_ALIAS_2} {PKG_ALIAS_3} ...
+  ALIAS_FILE=$(update_project_manager get_alias_file ${PROJECT} )
+  
+  
+  
   NEW_PKG_LIST=""
   for MANIFEST in ${MANIFEST_LIST} ; do
     #Get the Manifest file or a project URL.
@@ -113,6 +124,10 @@ for PROJECT in ${PROJECT_LIST}; do
     if [[ ${MANIFEST_FILE} =~ ^http.*$ ]] ; then
       MANIFEST_FILE=${WORKINGDIR}/`download_manifest ${MANIFEST_FILE} ${ARCH}`
     fi
+    
+
+    
+    
     #Get the new package list
     echo Get the new package list \"update_project_manager list_package ${MANIFEST_FILE}\"
     NEW_PKG_LIST="${NEW_PKG_LIST} `update_project_manager list_package ${MANIFEST_FILE}` "
@@ -121,7 +136,7 @@ for PROJECT in ${PROJECT_LIST}; do
     echo Generate service file into ${WORKINGDIR}/${PROJECT} directory.
     echo $(pwd)
     echo create_package_from_manifest ${MANIFEST_FILE} ${WORKINGDIR}/${PROJECT} ${DEFAULT_GIT_SRC}
-    create_package_from_manifest ${MANIFEST_FILE} ${WORKINGDIR}/${PROJECT} ${DEFAULT_GIT_SRC}
+    create_package_from_manifest ${MANIFEST_FILE} ${WORKINGDIR}/${PROJECT} ${ALIAS_FILE}  ${DEFAULT_GIT_SRC}
   done
   
   echo check new package into project ${PROJECT}.
@@ -138,13 +153,15 @@ for PROJECT in ${PROJECT_LIST}; do
   ${RM_CMD} /tmp/old_pkg_file.txt
   ${RM_CMD} /tmp/new_pkg_file.txt
   
-  for old_package in ${PACKAGE_TO_DEL} ; do
-    #remove unused package.
-    ${OSC_CMD} rm ${old_package};
-  done
+  if [ -z ${DRYRUN} ] ; then 
+      for old_package in ${PACKAGE_TO_DEL} ; do
+        #remove unused package.
+        ${OSC_CMD} rm ${old_package};
+      done
+  fi
   
   #commit all change
-  ${OSC_CMD} commit -m "- commit update_project `date` ."
+  [ -z ${DRYRUN} ] && ${OSC_CMD} commit -m "- commit update_project `date` ."
   
   #Finaly enable the project.
   [ -n ${PROJECT_IS_DISABLE} ] && ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=enable"

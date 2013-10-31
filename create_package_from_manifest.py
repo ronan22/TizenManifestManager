@@ -72,6 +72,20 @@ def parse_manifest_xml( src ):
 
     return remote, packages_dico
 
+def parse_alias_file( src ):
+    aliasFile = open( src, "r" )
+    aliastxt=aliasFile.read()
+    aliasFile.close()
+    res={}
+    
+    for line in aliastxt.split("\n"):
+      tmp_res= line.split(" ")
+      if len(tmp_res)>=2:
+          res[ tmp_res[0] ] = tmp_res[1:]
+    
+    return res
+
+
 def create_service( remote, path, revision, package_name ):
     return _service % ( remote, path, revision, package_name )
 
@@ -104,7 +118,12 @@ def main():
         project_dir = os.path.abspath( os.curdir )
 
     if len( sys.argv ) >= 4 :
-        remote_default = sys.argv[3]
+        alias_file = sys.argv[3]
+    else:
+        alias_file = None
+
+    if len( sys.argv ) >= 5 :
+        remote_default = sys.argv[4]
     else:
         remote_default = None
 
@@ -124,12 +143,22 @@ def main():
     if remote_default is not None:
         remote = remote_default
 
+    
+    alias_dico= parse_alias_file( alias_file )
     for package_name in packages_dico.keys():
         write_package_service( remote,
                               project_dir,
                               package_name,
                               packages_dico[package_name][0],
                               packages_dico[package_name][1] )
+	
+        if package_name in alias_dico.keys():
+            for package_name_alias in alias_dico[package_name]:
+                write_package_service( remote,
+                                       project_dir,
+                                       package_name_alias,
+                                       packages_dico[package_name][0],
+                                       packages_dico[package_name][1] )      
 
 
 if __name__ == '__main__':

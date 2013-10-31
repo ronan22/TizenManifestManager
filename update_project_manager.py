@@ -29,7 +29,6 @@ from xml.etree import ElementTree
 class update_project_manager_config( object ):
     '''
     Parse the file "spec2yocto_configure",
-
     '''
     def __init__( self ):
         self.__config_parser = ConfigParser.ConfigParser()
@@ -69,12 +68,12 @@ class update_project_manager_config( object ):
         val = self.__get_list( project, "arch", [""] )
         print val[0]
 
-    def print_manifest_list( self, project ):
+    def get_manifest_list( self, project ):
         '''
         function to print arch of project.
         '''
         val = self.__get_list( project, "manifest", [] )
-        print " ".join( val )
+        return val
 
 
     def print_manifest_file( self, project, manifest ):
@@ -91,6 +90,15 @@ class update_project_manager_config( object ):
         val = self.__get_list( project, "default_git_src", None )
         if val is not None:
             print val[0]
+
+    def print_alias_file( self, project ):
+        '''
+        function to print arch of project.
+        '''
+        val = self.__get_list( project, "alias", None )
+        if val is not None:
+            print val[0]  
+      
 
 def clean_name( raw_name ):
     if "/" in raw_name:
@@ -144,8 +152,10 @@ def main():
                     "get_arch {project}",
                     "get_default_git_src {project}",
                     "list_package {manifest_file}",
-                    "project_is_disable {meta_project_file}"
-                    "get_manifest_file {project} {manifest}"]
+                    "project_is_disable {meta_project_file}",
+                    "get_manifest_file {project} {manifest}",
+                    "get_alias_file {project}"]
+    
     if len( sys.argv ) < 2 :
         print "%s take on parameter \"%s\"." % ( sys.argv[0], ", ".join( command_list ) )
         sys.exit( 1 )
@@ -169,7 +179,10 @@ def main():
         if parameter_1 is None:
             print "%s %s take a {project} as parameter." % ( sys.argv[0], "get_manifest_list" )
             sys.exit( 1 )
-        UPM_CONFIG.print_manifest_list( parameter_1 )
+        res = UPM_CONFIG.get_manifest_list( parameter_1 )
+
+        print " ".join( res )
+
 
     elif command == "get_arch":
         if parameter_1 is None:
@@ -202,6 +215,13 @@ def main():
             sys.exit( 1 )
         UPM_CONFIG.print_manifest_file( parameter_1, parameter_2 )
 
+    elif command == "get_alias_file":
+        if parameter_1 is None :
+            print "%s %s take {project} as parameter." % ( sys.argv[0], "get_alias_file" )
+            sys.exit( 1 )
+        UPM_CONFIG.print_alias_file( parameter_1 )
+        
+        
     sys.exit( 0 )
 
 if __name__ == '__main__':
