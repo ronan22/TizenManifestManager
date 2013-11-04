@@ -26,6 +26,7 @@ Created on 14 nov. 2013
 
 from urllib import urlopen
 import sys
+import os
 from xml.etree import ElementTree
 
 class HTTPAccessFailure( Exception ):
@@ -86,20 +87,25 @@ def main():
     else:
         arch = None
 
-    xml_str = download_build_xml( project_base_url )
-    project_id = get_project_id( xml_str )
+    if not project_base_url.endswith(".xml"):
+        xml_str = download_build_xml( project_base_url )
+        project_id = get_project_id( xml_str )
 
-    list_arch = get_project_arch( xml_str )
+        list_arch = get_project_arch( xml_str )
 
-    if ( arch is None ) and ( len( list_arch ) > 0 ):
-        arch = list_arch[0]
+        if ( arch is None ) and ( len( list_arch ) > 0 ):
+            arch = list_arch[0]
 
-    if arch is None:
-        print "no arch define."
-        sys.exit( 1 )
+        if arch is None:
+            print "no arch define."
+            sys.exit( 1 )
 
-    manifest_name = "%s_%s.xml" % ( project_id, arch )
-    manifest_url = project_base_url + "/builddata/manifest/" + manifest_name
+        manifest_name = "%s_%s.xml" % ( project_id, arch )
+        manifest_url = project_base_url + "/builddata/manifest/" + manifest_name
+    else:
+        manifest_name=os.path.basename(project_base_url)
+        manifest_url = project_base_url
+        
     manifest_xml = download_manifest_url( manifest_url )
 
     with open( manifest_name, 'w' ) as a_file:
