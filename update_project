@@ -130,8 +130,8 @@ for PROJECT in ${PROJECT_LIST}; do
     fi
     
     #Get the new package list
-    echo Get the new package list \"update_project_manager list_package ${MANIFEST_FILE}\"
-    NEW_PKG_LIST="${NEW_PKG_LIST} `update_project_manager list_package ${MANIFEST_FILE}` "
+    echo Get the new package list \"update_project_manager list_package ${MANIFEST_FILE} ${ALIAS_FILE}\"
+    NEW_PKG_LIST="${NEW_PKG_LIST} `update_project_manager list_package ${MANIFEST_FILE} ${ALIAS_FILE}` "
     
     #the main part of the script. Generate the service file.
     echo Generate service file into ${WORKINGDIR}/${PROJECT} directory.
