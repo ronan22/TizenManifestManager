@@ -139,9 +139,36 @@ def project_is_disable( meta_project_file ):
 
 
 
-def print_list_package( src ):
+def print_list_package( src ,alias):
+  
+    alias_dico=parse_alias_file(alias)
+    
     packages_list = parse_manifest_xml( src )
+    for package in packages_list:
+      print package
+      if package in alias_dico.keys():
+	packages_list.extend(alias_dico[package]) 
+    
     print " ".join( packages_list )
+
+
+
+def parse_alias_file( src ):
+    aliasFile = open( src, "r" )
+    aliastxt=aliasFile.read()
+    aliasFile.close()
+    res={}
+    
+    for line in aliastxt.split("\n"):
+      tmp_res= line.split(" ")
+      if len(tmp_res)>=2:
+          res[ tmp_res[0] ] = tmp_res[1:]
+    
+    return res
+
+
+
+
 
 def main():
     '''
@@ -200,7 +227,7 @@ def main():
         if parameter_1 is None:
             print "%s %s take a {project} as parameter." % ( sys.argv[0], "get_default_git_src" )
             sys.exit( 1 )
-        print_list_package( parameter_1 )
+        print_list_package( parameter_1,parameter_2 )
 
     elif command == "project_is_disable":
         if parameter_1 is None:

@@ -114,7 +114,6 @@ for PROJECT in ${PROJECT_LIST}; do
     ALIAS_FILE=${WORKINGDIR}/$(basename ${ALIAS_FILE})
   fi
   
-  
   NEW_PKG_LIST=""
   for MANIFEST in ${MANIFEST_LIST} ; do
     #Get the Manifest file or a project URL.
@@ -129,9 +128,6 @@ for PROJECT in ${PROJECT_LIST}; do
     if [[ ${MANIFEST_FILE} =~ ^http.*$ ]] ; then
       MANIFEST_FILE=${WORKINGDIR}/`download_manifest ${MANIFEST_FILE} ${ARCH}`
     fi
-    
-
-    
     
     #Get the new package list
     echo Get the new package list \"update_project_manager list_package ${MANIFEST_FILE}\"
