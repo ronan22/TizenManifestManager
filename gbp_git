@@ -133,6 +133,12 @@ fetch_upstream () {
     REPOCACHEROOT="$CACHEDIRECTORY/repo"
     REPOCACHE="$REPOCACHEROOT/$HASH"
     REPOURLCACHE="$CACHEDIRECTORY/repourl/$HASH"
+    
+    safe_run mkdir -p "$REPOCACHEINCOMING"
+    safe_run mkdir -p "$REPOCACHEROOT"
+    safe_run mkdir -p "$CACHEDIRECTORY/repourl"
+
+    
   fi
 
   if [ -z "$MYREVISION" ]; then
@@ -253,40 +259,32 @@ prep_tree_for_tar () {
 
   TAR_BASENAME="$FILE"
 
-
-  MYINCLUDES=""
-
-  if [ -z "$MYINCLUDES" ]; then
-    MYINCLUDES="$TAR_BASENAME"
-  fi
-
   safe_run cd "$MYOUTDIR"
-
+  export TMPDIR=$(mktemp -d --tmpdir=.)
+  mkdir -p ${TMPDIR}
+  
   if [ -n "$CACHEDIRECTORY" ]; then
-    debug cp -a "$REPOPATH/$MYSUBDIR" "$TAR_BASENAME"
-    safe_run cp -a "$REPOPATH/$MYSUBDIR" "$TAR_BASENAME"
+    safe_run cp -a "$REPOPATH/$MYSUBDIR" "${TMPDIR}/${TAR_BASENAME}"
   else
-    debug mv3 "$REPOPATH/$MYSUBDIR" "$TAR_BASENAME"
-    safe_run mv "$REPOPATH/$MYSUBDIR" "$TAR_BASENAME"
+    safe_run mv "$REPOPATH/$MYSUBDIR" "${TMPDIR}/${TAR_BASENAME}"
   fi
 }
 
 cleanup () {
-  debug rm -rf "$TAR_BASENAME"
-  rm -rf $TAR_BASENAME
+  debug rm -rf "${MYOUTDIR}/${TMPDIR}"
+  rm -rf ${MYOUTDIR}/${TMPDIR}
 }
 
 create_gbp () {
-   safe_run cd $TAR_BASENAME
+   safe_run cd ${TMPDIR}/${TAR_BASENAME}
    
    if [ -z "$USE_SPECFILE" ] ; then
-      echo find_spec_file ${TAR_BASENAME} ${PACKAGE_NAME} > /tmp/test_log
+      echo find_spec_file ${MYOUTDIR}/${TMPDIR}/${TAR_BASENAME} ${PACKAGE_NAME} > /tmp/test_log
       
-      USE_SPECFILE=`find_spec_file ${MYOUTDIR}/${TAR_BASENAME} ${PACKAGE_NAME}`
+      USE_SPECFILE=`find_spec_file ${MYOUTDIR}/${TMPDIR}/${TAR_BASENAME} ${PACKAGE_NAME}`
    fi  
    
    git-buildpackage-rpm export --git-export-only --git-ignore-new --git-builder=osc --git-upstream-branch=upstream --git-export-dir="$MYOUTDIR" --git-packaging-dir=packaging --git-export="$MYREVISION" --git-upstream-branch=upstream --git-upstream-tag="upstream/%( )s" --git-spec-file="$USE_SPECFILE" $GBP_OPTION || exit 1
-
    safe_run cd ..
 }
 
