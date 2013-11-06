@@ -98,6 +98,15 @@ class update_project_manager_config( object ):
         val = self.__get_list( project, "alias", None )
         if val is not None:
             print val[0]  
+            
+    def print_blacklist_file( self, project ):
+        '''
+        function to print arch of project.
+        '''
+        val = self.__get_list( project, "blacklist", None )
+        if val is not None:
+            print val[0]    
+            
       
 
 def clean_name( raw_name ):
@@ -137,17 +146,19 @@ def project_is_disable( meta_project_file ):
                         print "yes"
                         return 0
 
-
-
-def print_list_package( src ,alias):
+def print_list_package( src, alias, blacklist):
   
     alias_dico=parse_alias_file(alias)
+    blacklist_list=parse_blacklist_file(blacklist)
     
     packages_list = parse_manifest_xml( src )
+    
     for package in packages_list:
-      print package
-      if package in alias_dico.keys():
-	packages_list.extend(alias_dico[package]) 
+      if package in blacklist_list:
+           packages_list.remove(package)
+      else:
+        if package in alias_dico.keys():
+          packages_list.extend(alias_dico[package]) 
     
     print " ".join( packages_list )
 
@@ -165,10 +176,19 @@ def parse_alias_file( src ):
           res[ tmp_res[0] ] = tmp_res[1:]
     
     return res
-
-
-
-
+  
+def parse_blacklist_file( src ):
+    aliasFile = open( src, "r" )
+    aliastxt=aliasFile.read()
+    aliasFile.close()
+    res=[]
+    
+    for line in aliastxt.split("\n"):
+      res.append(line)
+    
+    return res
+    
+  
 
 def main():
     '''
@@ -181,7 +201,8 @@ def main():
                     "list_package {manifest_file}",
                     "project_is_disable {meta_project_file}",
                     "get_manifest_file {project} {manifest}",
-                    "get_alias_file {project}"]
+                    "get_alias_file {project}",
+                    "get_blacklist_file {project}"]
     
     if len( sys.argv ) < 2 :
         print "%s take on parameter \"%s\"." % ( sys.argv[0], ", ".join( command_list ) )
@@ -197,6 +218,11 @@ def main():
         parameter_2 = sys.argv[3]
     else:
         parameter_2 = None
+
+    if len( sys.argv ) >= 5 :
+        parameter_3 = sys.argv[4]
+    else:
+        parameter_3 = None
 
     UPM_CONFIG = update_project_manager_config()
     if command == "list_project":
@@ -227,7 +253,7 @@ def main():
         if parameter_1 is None:
             print "%s %s take a {project} as parameter." % ( sys.argv[0], "get_default_git_src" )
             sys.exit( 1 )
-        print_list_package( parameter_1,parameter_2 )
+        print_list_package( parameter_1,parameter_2,parameter_3 )
 
     elif command == "project_is_disable":
         if parameter_1 is None:
@@ -248,6 +274,11 @@ def main():
             sys.exit( 1 )
         UPM_CONFIG.print_alias_file( parameter_1 )
         
+    elif command == "get_blacklist_file":
+        if parameter_1 is None :
+            print "%s %s take {project} as parameter." % ( sys.argv[0], "get_blacklist_file" )
+            sys.exit( 1 )
+        UPM_CONFIG.print_blacklist_file( parameter_1 )
         
     sys.exit( 0 )
 

@@ -107,12 +107,21 @@ for PROJECT in ${PROJECT_LIST}; do
   #The alias file is a simply text file, each line begin with a package name, 
   #{PKG} follow by package alias {PKG_ALIAS_1} {PKG_ALIAS_2} {PKG_ALIAS_3} ...
   ALIAS_FILE=$(update_project_manager get_alias_file ${PROJECT} )
+  BLACKLIST_FILE=$(update_project_manager get_blacklist_file ${PROJECT} )
   
   #If the Manifest is a project URL download it.
   if [[ ${ALIAS_FILE} =~ ^http.*$ ]] ; then
     curl ${ALIAS_FILE} > ${WORKINGDIR}/$(basename ${ALIAS_FILE})
     ALIAS_FILE=${WORKINGDIR}/$(basename ${ALIAS_FILE})
   fi
+  
+  #If the Manifest is a project URL download it.
+  if [[ ${BLACKLIST_FILE} =~ ^http.*$ ]] ; then
+    curl ${BLACKLIST_FILE} > ${WORKINGDIR}/$(basename ${BLACKLIST_FILE})
+    BLACKLIST_FILE=${WORKINGDIR}/$(basename ${BLACKLIST_FILE})
+  fi
+  
+  
   
   NEW_PKG_LIST=""
   for MANIFEST in ${MANIFEST_LIST} ; do
@@ -130,14 +139,14 @@ for PROJECT in ${PROJECT_LIST}; do
     fi
     
     #Get the new package list
-    echo Get the new package list \"update_project_manager list_package ${MANIFEST_FILE} ${ALIAS_FILE}\"
-    NEW_PKG_LIST="${NEW_PKG_LIST} `update_project_manager list_package ${MANIFEST_FILE} ${ALIAS_FILE}` "
+    echo Get the new package list \"update_project_manager list_package ${MANIFEST_FILE} ${ALIAS_FILE} ${BLACKLIST_FILE}\"
+    NEW_PKG_LIST="${NEW_PKG_LIST} `update_project_manager list_package ${MANIFEST_FILE} ${ALIAS_FILE} ${BLACKLIST_FILE}` "
     
     #the main part of the script. Generate the service file.
     echo Generate service file into ${WORKINGDIR}/${PROJECT} directory.
     echo $(pwd)
-    echo create_package_from_manifest ${MANIFEST_FILE} ${WORKINGDIR}/${PROJECT} ${ALIAS_FILE} ${DEFAULT_GIT_SRC}
-    create_package_from_manifest ${MANIFEST_FILE} ${WORKINGDIR}/${PROJECT} ${ALIAS_FILE}  ${DEFAULT_GIT_SRC}
+    echo create_package_from_manifest ${MANIFEST_FILE} ${WORKINGDIR}/${PROJECT} ${ALIAS_FILE} ${BLACKLIST_FILE} ${DEFAULT_GIT_SRC}
+    create_package_from_manifest ${MANIFEST_FILE} ${WORKINGDIR}/${PROJECT} ${ALIAS_FILE}  ${BLACKLIST_FILE} ${DEFAULT_GIT_SRC}
   done
   
   echo check new package into project ${PROJECT}.

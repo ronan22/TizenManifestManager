@@ -101,7 +101,16 @@ def write_package_service( remote, project_dir, package_name , package_path, pac
     g.write( service )
     g.close()
 
-
+def parse_blacklist_file( src ):
+    aliasFile = open( src, "r" )
+    aliastxt=aliasFile.read()
+    aliasFile.close()
+    res=[]
+    
+    for line in aliastxt.split("\n"):
+      res.append(line)
+    
+    return res
 
 def main():
     if len( sys.argv ) < 2 :
@@ -123,7 +132,12 @@ def main():
         alias_file = None
 
     if len( sys.argv ) >= 5 :
-        remote_default = sys.argv[4]
+        blacklist_file = sys.argv[4]
+    else:
+        blacklist_file = None
+
+    if len( sys.argv ) >= 6 :
+        remote_default = sys.argv[5]
     else:
         remote_default = None
 
@@ -145,20 +159,23 @@ def main():
 
     
     alias_dico= parse_alias_file( alias_file )
+    
+    blacklist_list=parse_blacklist_file(blacklist_file)
+
     for package_name in packages_dico.keys():
-        write_package_service( remote,
-                              project_dir,
-                              package_name,
-                              packages_dico[package_name][0],
-                              packages_dico[package_name][1] )
-	
-        if package_name in alias_dico.keys():
-            for package_name_alias in alias_dico[package_name]:
-                write_package_service( remote,
-                                       project_dir,
-                                       package_name_alias,
-                                       packages_dico[package_name][0],
-                                       packages_dico[package_name][1] )      
+        if not package_name in blacklist_list:
+          write_package_service( remote,
+                                project_dir,
+                                package_name,
+                                packages_dico[package_name][0],
+                                packages_dico[package_name][1] )
+          if package_name in alias_dico.keys():
+              for package_name_alias in alias_dico[package_name]:
+                  write_package_service( remote,
+                                         project_dir,
+                                         package_name_alias,
+                                         packages_dico[package_name][0],
+                                         packages_dico[package_name][1] )      
 
 
 if __name__ == '__main__':
