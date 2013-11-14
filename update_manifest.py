@@ -36,7 +36,7 @@ from xml.etree import ElementTree
 start_manifext_xml='''<?xml version="1.0" encoding="UTF-8"?>
 <manifest>
   <remote fetch="ssh://review.tizen.org" name="tizen-gerrit" review="https://review.tizen.org/gerrit"/>
-  <default remote="tizen-gerrit"/>'''
+  <default remote="tizen-gerrit"/>\n'''
   
 end_manifext_xml='''</manifest>'''
 
@@ -196,32 +196,46 @@ def checkRemote(remote,packages_dico):
   
     list_package=packages_dico.keys()
     list_package.sort()
+    i=1
     
     for package_name in list_package:
-      
+      print "package %s    %s/%s" % ( package_name, i, len(list_package) )
       gitPath=packages_dico[package_name][0]
       gitTag=packages_dico[package_name][1]
 
-      cmd="git ls-remote --tags %s:%s" % (remote,gitPath)
+      cmd="git ls-remote --tags %s:%s" % (remote, gitPath)
       try:
         tag_list=subProcessor.exec_subprocess(cmd)
-        lastTag=getLastTag(tag_list)
-       
+        dicoresult=getLastTag(tag_list)
+        resTag=dicoresult.keys()
+        resTag.sort()
+        lastSha,lastTag = dicoresult[ resTag[-1]]
+        
+        currentSha=None
+        for sTag in resTag:
+	  sha,tag= dicoresult[sTag]
+	  if tag == gitTag:
+	    currentSha=sha
+	    
+        
         if "submit" in gitTag: 
-          if tagIsNewer(gitTag,lastTag):
+          if tagIsNewer(gitTag,lastTag) and currentSha!=lastSha:
+	      print "Tag ",lastTag," is newer then ",gitTag
               file_res+= "  <project name=\"%s\" path=\"%s\" revision=\"%s\"/>\n" % (gitPath,gitPath,lastTag)
+              
       except:
           print cmd," failed"
-          
+      i=i+1
+      
     file_res+=end_manifext_xml
     return file_res
 
 
 def cleanTag_line(tag_line):
   if "\t" in tag_line:
-    return tag_line.split("\t")[1].replace("refs/tags/","")
+    return tag_line.split("\t")[0] , tag_line.split("\t")[1].replace("refs/tags/","")
   else:
-    return tag_line
+    return None,tag_line
 
 def getTagDate(clean_tag):
   return clean_tag.split("/")[-1]
@@ -230,14 +244,13 @@ def getLastTag(tag_list):
     dicoresult={}
     for tag_line in tag_list.split("\n"):
       if "submit" in tag_line:
-	clean_tag= cleanTag_line(tag_line)
+	sha, clean_tag= cleanTag_line(tag_line)
 	date_tag=getTagDate(clean_tag)
-	if not "^{}" in date_tag:
-	  dicoresult[date_tag]=clean_tag
+	if date_tag.endswith("^{}"):
+	  dicoresult[ date_tag[:-3] ]=[ sha, clean_tag[:-3] ]
       
-    resTag=dicoresult.keys()
-    resTag.sort()
-    return dicoresult[ resTag[-1]]
+    return dicoresult
+
       
 
 def main():
