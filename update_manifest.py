@@ -176,11 +176,14 @@ def parse_manifest_xml( src ):
                 review = project.attrib['review']
             else:
                 print "ERROR"
-
+         
     return remote, packages_dico
 
 def tagIsNewer(tag1,tag2):
    return getTagDate(tag2)>getTagDate(tag1) 
+
+
+  
 
 def checkRemote(remote,packages_dico):
     subProcessor=SubprocessCrt()
@@ -200,25 +203,27 @@ def checkRemote(remote,packages_dico):
       try:
         tag_list=subProcessor.exec_subprocess(cmd)
         dicoresult=getLastTag(tag_list)
-        resTag=dicoresult.keys()
+        resTag_tmp=dicoresult.keys()
+
+        resTag=[]
+        for elem in resTag_tmp:
+          if "accepted/" in dicoresult[elem][1]:
+            resTag.append(elem)
         resTag.sort()
         lastSha,lastTag = dicoresult[ resTag[-1]]
         
         currentSha=None
-        for sTag in resTag:
-	  sha,tag= dicoresult[sTag]
-	  if tag == gitTag:
-	    currentSha=sha
-	    
-        if "submit/" in gitTag or "accepted/" in gitTag: 
-          if tagIsNewer(gitTag,lastTag) and currentSha!=lastSha:
-	      print "Tag ",lastTag," is newer then ",gitTag
-              file_res+= "  <project name=\"%s\" path=\"%s\" revision=\"%s\"/>\n" % (gitPath,gitPath,lastTag)
+        for sTag in resTag_tmp:
+          sha,tag= dicoresult[sTag]
+          if tag == gitTag:
+            currentSha=sha
+        if tagIsNewer(gitTag,lastTag) and currentSha!=lastSha:
+          print "Tag ",lastTag," is newer then ",gitTag
+          file_res+= "  <project name=\"%s\" path=\"%s\" revision=\"%s\"/>\n" % (gitPath,gitPath,lastTag)
               
       except:
           print cmd," failed"
       i=i+1
-      
     file_res+=end_manifext_xml
     return file_res
 
@@ -235,7 +240,7 @@ def getTagDate(clean_tag):
 def getLastTag(tag_list):
     dicoresult={}
     for tag_line in tag_list.split("\n"):
-      if "accepted" in tag_line:
+      if "accepted/" in tag_line or "submit/" in tag_line:
 	sha, clean_tag= cleanTag_line(tag_line)
 	date_tag=getTagDate(clean_tag)
 	if date_tag.endswith("^{}"):
