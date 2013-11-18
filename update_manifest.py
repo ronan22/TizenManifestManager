@@ -180,14 +180,7 @@ def parse_manifest_xml( src ):
     return remote, packages_dico
 
 def tagIsNewer(tag1,tag2):
-  if tag1 == tag2:
-    return False
-  
-  listTag=[tag1,tag2]
-  listTag.sort()
-  
-  return tag2 == listTag[1]
-  
+   return getTagDate(tag2)>getTagDate(tag1) 
 
 def checkRemote(remote,packages_dico):
     subProcessor=SubprocessCrt()
@@ -217,8 +210,7 @@ def checkRemote(remote,packages_dico):
 	  if tag == gitTag:
 	    currentSha=sha
 	    
-        
-        if "submit" in gitTag: 
+        if "submit/" in gitTag or "accepted/" in gitTag: 
           if tagIsNewer(gitTag,lastTag) and currentSha!=lastSha:
 	      print "Tag ",lastTag," is newer then ",gitTag
               file_res+= "  <project name=\"%s\" path=\"%s\" revision=\"%s\"/>\n" % (gitPath,gitPath,lastTag)
@@ -243,14 +235,13 @@ def getTagDate(clean_tag):
 def getLastTag(tag_list):
     dicoresult={}
     for tag_line in tag_list.split("\n"):
-      if "submit" in tag_line:
+      if "accepted" in tag_line:
 	sha, clean_tag= cleanTag_line(tag_line)
 	date_tag=getTagDate(clean_tag)
 	if date_tag.endswith("^{}"):
 	  dicoresult[ date_tag[:-3] ]=[ sha, clean_tag[:-3] ]
       
     return dicoresult
-
       
 
 def main():
