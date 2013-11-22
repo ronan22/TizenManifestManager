@@ -143,9 +143,12 @@ for PROJECT in ${PROJECT_LIST}; do
     fi
     #If the Manifest is a project URL download it.
     if [[ ${MANIFEST_FILE} =~ ^http.*$ ]] ; then
+      echo MANIFEST_FILE=${WORKINGDIR}/\`download_manifest ${MANIFEST_FILE} ${ARCH}\`
       MANIFEST_FILE=${WORKINGDIR}/`download_manifest ${MANIFEST_FILE} ${ARCH}`
     fi
-    
+    echo
+    echo "    add manifest: ${MANIFEST_FILE}"
+    echo
     MANIFEST_FILES_LIST="${MANIFEST_FILES_LIST} ${MANIFEST_FILE}"
    
   done

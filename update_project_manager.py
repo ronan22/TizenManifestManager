@@ -150,7 +150,7 @@ def parse_manifest_xml( src, remote_dico={}, packages_dico={}, alias_dico={} ):
                     remote = default_remote
                     
                     
-                packages_dico[clean_path( git_name)] = [git_name, git_path, revision, remote]
+                packages_dico[clean_path( git_path)] = [git_name, git_path, revision, remote]
                 
             elif project.tag == "default":
                   default_remote = project.attrib['remote']
