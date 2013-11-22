@@ -47,8 +47,6 @@ It supports downloading from git repositories by gbp.
 
 %install
 mkdir -p %{buildroot}%{_bindir}
-cp create_package_from_manifest.py %{buildroot}%{_bindir}
-ln -s create_package_from_manifest.py %{buildroot}%{_bindir}/create_package_from_manifest
 
 cp download_manifest.py  %{buildroot}%{_bindir}
 ln -s download_manifest.py %{buildroot}%{_bindir}/download_manifest
@@ -73,8 +71,6 @@ install -m 0644 %{service}.conf %{buildroot}%{_sysconfdir}/obs/services/%{servic
 
 %files
 %defattr(-,root,root)
-%{_bindir}/create_package_from_manifest
-%{_bindir}/create_package_from_manifest.py
 
 %{_bindir}/download_manifest
 %{_bindir}/download_manifest.py
