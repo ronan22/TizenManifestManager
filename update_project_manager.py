@@ -340,7 +340,7 @@ def create_package_from_manifest(project_dir, manifest_xml_src):
         write_package_service( fetch,
                                project_dir,
                                package_name,
-                               git_path,
+                               git_name,
                                gitTag )
 
 
@@ -352,11 +352,11 @@ _service = """<services>
    </service>
 </services>"""
 
-def create_service( fetch, git_path, revision, package_name ):
-    return _service % ( fetch, git_path, revision, package_name )
+def create_service( fetch, git_name, revision, package_name ):
+    return _service % ( fetch, git_name, revision, package_name )
   
-def write_package_service( fetch, project_dir, package_name , git_path, package_revision ):
-    service = create_service( fetch, git_path, package_revision, package_name )
+def write_package_service( fetch, project_dir, package_name , git_name, package_revision ):
+    service = create_service( fetch, git_name, package_revision, package_name )
     pkgPath = project_dir + "/" + package_name
     pkgPathSrv = pkgPath + "/_service"
 
