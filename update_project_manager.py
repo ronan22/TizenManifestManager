@@ -345,6 +345,14 @@ def create_package_from_manifest(project_dir, manifest_xml_src):
                                package_name,
                                git_name,
                                gitTag )
+        if package_name in alias_dico.keys():
+            for package_alias in alias_dico[package_name]:
+                print "package_alias",package_alias
+                write_package_service( fetch,
+                                       project_dir,
+                                       package_alias,
+                                       git_name,
+                                       gitTag )
 
 
 _service = """<services>
