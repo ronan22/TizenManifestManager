@@ -21,7 +21,7 @@
 
 WORKINGDIR="/tmp/obs"
 OBS_API=
-OSC_CMD="echo osc"
+OSC_CMD="osc"
 RM_CMD="rm -fr"
 
 DRYRUN=

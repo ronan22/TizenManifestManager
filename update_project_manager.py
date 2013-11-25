@@ -140,8 +140,12 @@ def parse_manifest_xml( src, remote_dico={}, packages_dico={}, alias_dico={} ):
     for value in aElement:
         for project in value.getiterator():
             if project.tag == "project":
-                git_path =  project.attrib['path']
                 git_name = project.attrib['name']
+                if 'path' in project.attrib:
+                    git_path =  project.attrib['path']
+                else:
+                    git_path =  git_name
+                    
                 revision = clean_revision( project.attrib['revision'] )
                 
                 if 'remote' in  project.attrib:
