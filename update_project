@@ -21,7 +21,7 @@
 
 WORKINGDIR="/tmp/obs"
 OBS_API=
-OSC_CMD="osc"
+OSC_CMD="echo osc"
 RM_CMD="rm -fr"
 
 DRYRUN=
@@ -153,7 +153,7 @@ for PROJECT in ${PROJECT_LIST}; do
    
   done
   mkdir -p "${WORKINGDIR}/main_manifest"
-  MAIN_MANIFEST="${WORKINGDIR}/main_manifest/${PROJECT}_$(date +"%G%m%d_%k%M%S").xml"
+  MAIN_MANIFEST="${WORKINGDIR}/main_manifest/${PROJECT}_$(date +"%Y%m%d_%H%M%S").xml"
   
   MERGE_CMD="update_project_manager merge_project_manifest"
   
