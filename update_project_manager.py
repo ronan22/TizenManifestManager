@@ -184,7 +184,6 @@ def get_package_manifest_xml( src ):
     remote_dico,  packages_dico, alias_dico = parse_manifest_xml( src )
     
     packages_list=packages_dico.keys()
-    print "packages_list",packages_list
     for package_name in packages_list: 
         if package_name in alias_dico.keys(): 
             for p_alias in alias_dico[package_name]: 
