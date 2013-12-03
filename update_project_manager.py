@@ -356,12 +356,13 @@ def create_package_from_manifest(project_dir, manifest_xml_src):
 
 
 _service = """<services>
-  <service name="gbp_git">
+  <service name="gbs">
   <param name="url">%s:%s</param>
    <param name="revision">%s</param>
-   <param name="package_name">%s</param>
+   <param name="spec">%s</param>
    </service>
 </services>"""
+
 
 def create_service( fetch, git_name, revision, package_name ):
     return _service % ( fetch, git_name, revision, package_name )

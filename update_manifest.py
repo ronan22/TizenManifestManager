@@ -33,6 +33,17 @@ import errno
 
 from xml.etree import ElementTree
 
+import signal
+
+TO_EXIT=False
+def signal_handler(signal, frame):
+    global TO_EXIT
+    TO_EXIT=True
+    print 'You pressed Ctrl+C!'
+    sys.exit(0)
+        
+signal.signal(signal.SIGINT, signal_handler)
+
 start_manifext_xml='''<?xml version="1.0" encoding="UTF-8"?>
 <manifest>
   <remote fetch="ssh://review.tizen.org" name="tizen-gerrit" review="https://review.tizen.org/gerrit"/>
@@ -186,6 +197,7 @@ def tagIsNewer(tag1,tag2):
   
 
 def checkRemote(remote,packages_dico):
+    global TO_EXIT
     subProcessor=SubprocessCrt()
     
     file_res=start_manifext_xml
@@ -195,6 +207,8 @@ def checkRemote(remote,packages_dico):
     i=1
     
     for package_name in list_package:
+      if TO_EXIT:
+        break
       print "package %s    %s/%s" % ( package_name, i, len(list_package) )
       gitPath=packages_dico[package_name][0]
       gitTag=packages_dico[package_name][1]
