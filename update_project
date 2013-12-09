@@ -27,7 +27,9 @@ RM_CMD="rm -fr"
 DRYRUN=
 
 #Source the default parameter for update_project.
-if [ -f ${HOME}/.update_projectrc ] ; then
+if [ -f "${HOME}/.update_projectrc" ] ; then
+   echo source ${HOME}/.update_projectrc
+   echo OSC_CMD $OSC_CMD
    source ${HOME}/.update_projectrc
 else
    #If .update_projectrc is create create empty file.
