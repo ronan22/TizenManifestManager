@@ -297,9 +297,9 @@ def parse_manifest_xml( src, remote_dico={}, packages_dico={}, alias_dico={} ):
                 print "ERROR",project.tag
          
     if default_remote is not None:
-         for pkg in packages_dico.keys():
-             if remote is None:
-                 packages_dico[pkg].remote=default_remote
+         for attr in packages_dico.keys():
+             if packages_dico[attr].remote is None:
+                 packages_dico[attr].remote=default_remote
          
     return  remote_dico,  packages_dico, alias_dico
 
