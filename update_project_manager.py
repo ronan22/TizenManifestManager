@@ -444,11 +444,6 @@ def create_package_from_manifest(project_dir, manifest_xml_src):
         error_message = "%s is not a directory."
         print  error_message % ( project_dir )
         sys.exit( 1 )
-
-    if not os.path.isdir( os.path.join( project_dir, ".osc" ) ):
-        error_message = "%s is not a osc directory."
-        print  error_message % ( project_dir )
-        sys.exit( 1 )
     
     
     remote_dico, packages_dico, alias_dico = parse_manifest_xml( manifest_xml_src )
@@ -476,7 +471,7 @@ def create_package_from_manifest(project_dir, manifest_xml_src):
                                        git_package.revision )
 
 
-_service = """<services>
+_service_template_1 = """<services>
   <service name="gbs">
   <param name="url">%s:%s</param>
    <param name="revision">%s</param>
@@ -484,9 +479,30 @@ _service = """<services>
    </service>
 </services>"""
 
+_service_template_2 = """<services>
+  <service name="gbs">
+  <param name="url">%s:%s</param>
+   <param name="revision">%s</param>
+   </service>
+</services>"""
+
+_service_template_tizen = """<services>
+    <service name='gbs'>
+        <param name='revision'>%s</param>
+        <param name='url'>ssh://%s/%s</param>
+    </service>
+</services>"""
+
 
 def create_service( fetch, git_name, revision, package_name ):
-    return _service % ( fetch, git_name, revision, package_name )
+    return _service_template_tizen% ( revision, fetch, git_name  )
+  
+    #if package_name is None: 
+    #  return _service_template_2 % ( fetch, git_name, revision )
+    #else:
+    #  return _service_template_1 % ( fetch, git_name, revision, package_name )
+      
+    
   
 def write_package_service( fetch, project_dir, package_name , git_name, package_revision ):
     service = create_service( fetch, git_name, package_revision, package_name )
@@ -512,7 +528,7 @@ def getLastTag(tag_list):
       if "accepted/" in tag_line or "submit/" in tag_line:
         sha, clean_tag= cleanTag_line(tag_line)
         date_tag=getTagDate(clean_tag)
-        if date_tag.endswith("^{}"):
+        if date_tag is not None and date_tag.endswith("^{}"):
             dicoresult[ date_tag[:-3] ]=[ sha, clean_tag[:-3] ]
     return dicoresult
 
@@ -566,6 +582,9 @@ class CommitRemote:
     self.alias_commit=None
     self.date_tag=None
     
+    self.alias_sha=None
+    self.sha=None
+    
   def setCommitValue(self,date_tag,sha) :
     if date_tag.endswith("^{}"):
       self.alias_tag=date_tag
@@ -597,7 +616,8 @@ class CommitCollection:
     #TODO ???
     if test_date is None:
       test_date=self.__origin_date_tag
-      
+    if test_date is None:
+      return False
     if len("20121215.161330") == len(test_date) and \
        test_date.count(".") == 1:
          return True
@@ -622,18 +642,21 @@ class CommitCollection:
       if commit_key == self.__origin_tag:
           self.__origin_sha = self.commit_dico[commit_key].getSha()
           return True
+      elif self.commit_dico[commit_key].getSha() == self.__origin_tag:
+          return True
+          
     return False
 
   def get_candidates(self):
     res=[]
     for commit_key in self.commit_dico.keys():
-         if commit_key.startswith("accepted/"):
+         if commit_key.startswith("accepted/")  and "/tizen/" in commit_key:
              if self.commit_dico[commit_key].getSha() != self.__origin_sha:
                   res.append(commit_key)
     return res
          
   def have_newer_tag(self):
-    if not self.__have_a_valid_date():
+    if self.__origin_date_tag is not None and not self.__have_a_valid_date():
       return False
     
     if not self.__check_origin_sha():
@@ -645,7 +668,8 @@ class CommitCollection:
     self.newer_commit=None
     self.newer_commit_date=None
     for candidate in candidates_list:
-      if self.__have_a_valid_date(self.commit_dico[candidate].date_tag) and self.is_newer(candidate):
+      if self.__have_a_valid_date(self.commit_dico[candidate].date_tag) and \
+         self.is_newer(candidate):
            self.newer_commit = candidate
            self.newer_commit_date=self.commit_dico[candidate].date_tag
 
@@ -656,14 +680,21 @@ class CommitCollection:
   
   def is_newer(self, candidate):
     candidate_date=self.commit_dico[candidate].date_tag
-    if self.newer_commit is None:
-        return candidate_date > self.__origin_date_tag
+    if candidate_date is None:
+      return False
+    elif self.__origin_date_tag is None and self.newer_commit is None:
+      return True
+    elif self.newer_commit is None:
+        return candidate_date > self.__origin_date_tag 
     else:
         return (candidate_date > self.__origin_date_tag ) and ( candidate_date > self.newer_commit_date)
     
     
 def getTagDate(clean_tag):
-  return clean_tag.split("/")[-1]
+  if not "/tizen/" in clean_tag:
+    return None
+  else:
+    return clean_tag.split("/")[-1]
 
 
 
@@ -686,9 +717,8 @@ def checkRemote(remote_dico,packages_dico):
       remote=remote_dico[git_package.remote]
       if "//" in remote:
             remote=remote.split("//")[1]
-              
+            
       cmd="git ls-remote --tags %s:%s" % (remote, git_package.name)
-
       try:
         tag_list=subProcessor.exec_subprocess(cmd)
         res=0
