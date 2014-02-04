@@ -47,7 +47,7 @@ if  [ -z "${OBS_API}" ] ; then
   exit 1
 fi
 
-#Create the WORKINGDIR directory. 
+#Create the WORKINGDIR directory.
 if [ ! -d ${WORKINGDIR} ] ; then
     mkdir -p ${WORKINGDIR}
 fi
@@ -61,13 +61,13 @@ else
    PROJECT_LIST="$@"
 fi
 
-if [ ! $? == 0 ] ; then 
+if [ ! $? == 0 ] ; then
   echo command \"update_project_manager list_project\" failed.
   exit 1
 fi
 
 for PROJECT in ${PROJECT_LIST}; do
-  
+
   if [ ! -d ${WORKINGDIR}/${PROJECT} ] ; then
     echo checkout project ${PROJECT}
     ${OSC_CMD} -A ${OBS_API} co ${PROJECT}
@@ -83,9 +83,9 @@ for PROJECT in ${PROJECT_LIST}; do
   osc meta prj ${PROJECT} > /tmp/meta_prj
   PROJECT_WAS_DISABLE=`update_project_manager project_is_disable /tmp/meta_prj`
   ${RM_CMD} /tmp/meta_prj
-  
+
   PROJECT_IS_DISABLE=
-  if [ -z ${DRYRUN} ] ; then  
+  if [ -z ${DRYRUN} ] ; then
       if [ -z ${PROJECT_WAS_DISABLE} ] ;then
         #if the is not already disable, disable it.
         ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=disable"
@@ -95,26 +95,26 @@ for PROJECT in ${PROJECT_LIST}; do
   #Before update do an check and store the current package
   OLD_PKG_LIST=`ls | grep -v .osc`
   cd ..
-  
+
   #ARCH is optional
   ARCH=`update_project_manager get_arch ${PROJECT}`
-  
+
   #Get the manifest list from conf file
   MANIFEST_LIST=`update_project_manager get_manifest_list ${PROJECT}`
-  if [ ! $? == 0 ] ; then 
+  if [ ! $? == 0 ] ; then
     echo command \"update_project_manager get_manifest_list ${PROJECT}\" failed.
     [ -n ${PROJECT_IS_DISABLE} ] && ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=enable"
     exit 1
   fi
-  
-  echo 
+
+  echo
   echo get alias file
-  #The alias file is a simply text file, each line begin with a package name, 
+  #The alias file is a simply text file, each line begin with a package name,
   #{PKG} follow by package alias {PKG_ALIAS_1} {PKG_ALIAS_2} {PKG_ALIAS_3} ...
   echo update_project_manager get_alias_file ${PROJECT}
   ALIAS_FILE=$(update_project_manager get_alias_file ${PROJECT} )
   BLACKLIST_FILE=$(update_project_manager get_blacklist_file ${PROJECT} )
-  
+
   #If the Manifest is a project URL download it.
   if [[ ${ALIAS_FILE} =~ ^http.*$ ]] ; then
     curl ${ALIAS_FILE} > ${WORKINGDIR}/$(basename ${ALIAS_FILE})
@@ -123,7 +123,7 @@ for PROJECT in ${PROJECT_LIST}; do
   if [ -n  "${ALIAS_FILE}" ] ; then
       ALIAS_FILE=" --alias ${ALIAS_FILE}"
   fi
-  
+
   #If the Manifest is a project URL download it.
   if [[ ${BLACKLIST_FILE} =~ ^http.*$ ]] ; then
     curl ${BLACKLIST_FILE} > ${WORKINGDIR}/$(basename ${BLACKLIST_FILE})
@@ -132,38 +132,41 @@ for PROJECT in ${PROJECT_LIST}; do
   if [ -n  "${BLACKLIST_FILE}" ] ; then
       BLACKLIST_FILE=" --blacklist ${BLACKLIST_FILE}"
   fi
-  
+
   MANIFEST_FILES_LIST=""
+  MANIFEST_DIR=${WORKINGDIR}"/update_"${PROJECT}
+  mkdir -p ${MANIFEST_DIR}
   for MANIFEST in ${MANIFEST_LIST} ; do
     #Get the Manifest file or a project URL.
     echo update_project_manager get_manifest_file ${PROJECT} ${MANIFEST}
     MANIFEST_FILE=`update_project_manager get_manifest_file ${PROJECT} ${MANIFEST}`
-    if [ ! $? == 0 ] ; then 
+    if [ ! $? == 0 ] ; then
       echo command \"update_project_manager get_manifest_file ${PROJECT} ${MANIFEST}\" failed.
       [ -n ${PROJECT_IS_DISABLE} ] && ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=enable"
       exit 1
     fi
     #If the Manifest is a project URL download it.
     if [[ ${MANIFEST_FILE} =~ ^http.*$ ]] ; then
-      echo MANIFEST_FILE=${WORKINGDIR}/\`download_manifest ${MANIFEST_FILE} ${ARCH}\`
-      MANIFEST_FILE=${WORKINGDIR}/`download_manifest ${MANIFEST_FILE} ${ARCH}`
+      LOCAL_MANIFEST_FILE=${MANIFEST_DIR}"/"${MANIFEST}".xml"
+      download_manifest ${LOCAL_MANIFEST_FILE} ${MANIFEST_FILE} ${ARCH}
+      MANIFEST_FILE=${LOCAL_MANIFEST_FILE}
     fi
     echo
     echo "    add manifest: ${MANIFEST_FILE}"
     echo
     MANIFEST_FILES_LIST="${MANIFEST_FILES_LIST} ${MANIFEST_FILE}"
-   
+
   done
-  mkdir -p "${WORKINGDIR}/main_manifest"
-  MAIN_MANIFEST="${WORKINGDIR}/main_manifest/${PROJECT}_$(date +"%Y%m%d_%H%M%S").xml"
-  
+  mkdir -p "${MANIFEST_DIR}/main_manifest"
+  MAIN_MANIFEST="${MANIFEST_DIR}/main_manifest/${PROJECT}_$(date +"%Y%m%d_%H%M%S").xml"
+
   MERGE_CMD="update_project_manager merge_project_manifest"
-  
+
   echo  update_project_manager merge_project_manifest ${BLACKLIST_FILE} ${ALIAS_FILE} --manifest_dst ${MAIN_MANIFEST} ${MANIFEST_FILES_LIST}
   update_project_manager merge_project_manifest ${BLACKLIST_FILE} ${ALIAS_FILE} --manifest_dst ${MAIN_MANIFEST} ${MANIFEST_FILES_LIST}
-  
+
   NEW_PKG_LIST=$(update_project_manager list_package ${MAIN_MANIFEST})
-    
+
   #the main part of the script. Generate the service file.
   echo Generate service file into ${WORKINGDIR}/${PROJECT} directory.
   echo $(pwd)
@@ -177,28 +180,28 @@ for PROJECT in ${PROJECT_LIST}; do
     echo ${OSC_CMD} add ${new_package};
     ${OSC_CMD} add ${new_package};
   done
-  
+
   #check the package need to be deleted.
   echo ${OLD_PKG_LIST} | tr ' ' '\n' | sort > /tmp/old_pkg_file.txt
   echo ${NEW_PKG_LIST} | tr ' ' '\n' | sort > /tmp/new_pkg_file.txt
   PACKAGE_TO_DEL=`comm -23  /tmp/old_pkg_file.txt /tmp/new_pkg_file.txt`
   ${RM_CMD} /tmp/old_pkg_file.txt
   ${RM_CMD} /tmp/new_pkg_file.txt
-  
-  if [ -z "${DRYRUN}" ] ; then 
+
+  if [ -z "${DRYRUN}" ] ; then
       for old_package in ${PACKAGE_TO_DEL} ; do
         #remove unused package.
         echo ${OSC_CMD} rm ${old_package};
         ${OSC_CMD} rm ${old_package};
       done
   fi
-  
+
   #commit all change
   [ -z "${DRYRUN}" ] && ${OSC_CMD} commit -m "- commit update_project `date` ."
-  
+
   #Finaly enable the project.
   [ -n "${PROJECT_IS_DISABLE}" ] && ${OSC_CMD} api -X POST "/source/${PROJECT}?cmd=set_flag&flag=build&status=enable"
-  
+
   cd ..
 done
 

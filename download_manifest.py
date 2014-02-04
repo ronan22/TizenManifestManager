@@ -75,15 +75,16 @@ def get_project_arch( xml ):
 
 
 def main():
-    if len( sys.argv ) < 2 :
-        error_message = "%s take 2 parameters at least one parameter, project_base_url and arch."
+    if len( sys.argv ) < 3 :
+        error_message = "%s take 3 parameters at least one parameter, file_dst, project_base_url and arch."
         print  error_message % ( sys.argv[0] )
         sys.exit( 1 )
 
-    project_base_url = sys.argv[1]
+    file_dst = sys.argv[1]
+    project_base_url = sys.argv[2]
 
-    if len( sys.argv ) >= 3:
-        arch = sys.argv[2]
+    if len( sys.argv ) >= 4:
+        arch = sys.argv[3]
     else:
         arch = None
 
@@ -100,19 +101,14 @@ def main():
             print "no arch define."
             sys.exit( 1 )
 
-        manifest_name = "%s_%s.xml" % ( project_id, arch )
         manifest_url = project_base_url + "/builddata/manifest/" + manifest_name
     else:
-        manifest_name=os.path.basename(project_base_url)
         manifest_url = project_base_url
-        
+
     manifest_xml = download_manifest_url( manifest_url )
 
-    with open( manifest_name, 'w' ) as a_file:
+    with open( file_dst, 'w' ) as a_file:
         a_file.write( manifest_xml )
-
-    print manifest_name
-
 
 
 if __name__ == '__main__':

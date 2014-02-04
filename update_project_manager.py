@@ -41,7 +41,7 @@ try:
 except:
     print 'Error spec2yocto require "python-cmdln" please install it.'
     sys.exit( 1 )
-    
+
 TERMINAL_COLORS = {"black": "\033[30;1m",
                    "red": "\033[31;1m",
                    "green": "\033[32;1m",
@@ -58,17 +58,17 @@ def signal_handler(signal, frame):
     TO_EXIT=True
     print 'You pressed Ctrl+C!'
     sys.exit(0)
-        
+
 signal.signal(signal.SIGINT, signal_handler)
 
-   
+
 def colorize( text, color = "green" ):
     """
     Return a colorized copy of `text`.
     See Utils.TERMINAL_COLORS.keys() for available colors.
     """
     return TERMINAL_COLORS.get( color, "" ) + text + TERMINAL_COLORS["default"]
-  
+
 
 class SubprocessCrt( object ):
     '''
@@ -232,26 +232,26 @@ class update_project_manager_config( object ):
         '''
         val = self.__get_list( project, "alias", None )
         if val is not None:
-            print val[0]  
-            
+            print val[0]
+
     def print_blacklist_file( self, project ):
         '''
         function to print arch of project.
         '''
         val = self.__get_list( project, "blacklist", None )
         if val is not None:
-            print val[0]    
-            
-      
+            print val[0]
+
+
 
 def clean_path( raw_name ):
     return os.path.basename(raw_name)
-  
+
 def parse_manifest_xml( src, remote_dico={}, packages_dico={}, alias_dico={} ):
     primaryFile = open( src, "r" )
     primaryXML = primaryFile.read()
     primaryFile.close()
-    
+
     aElement = ElementTree.fromstring( primaryXML )
     default_remote=None
     for value in aElement:
@@ -262,16 +262,16 @@ def parse_manifest_xml( src, remote_dico={}, packages_dico={}, alias_dico={} ):
                     git_path =  project.attrib['path']
                 else:
                     git_path =  git_name
-                    
+
                 revision = clean_revision( project.attrib['revision'] )
-                
+
                 if 'remote' in  project.attrib:
                     remote=project.attrib['remote']
                 else:
                     remote = default_remote
-                    
+
                 packages_dico[clean_path( git_path)] = Git_Package(git_name, git_path, revision, remote)
-                
+
                 if '{http://tizen.org}origin_name' in project.attrib and \
                    '{http://tizen.org}origin_revision' in project.attrib and \
                    '{http://tizen.org}origin_remote' in project.attrib:
@@ -279,7 +279,7 @@ def parse_manifest_xml( src, remote_dico={}, packages_dico={}, alias_dico={} ):
                   tzrevision = project.attrib['{http://tizen.org}origin_revision']
                   tzremote = project.attrib['{http://tizen.org}origin_remote']
                   packages_dico[clean_path( git_path)].set_origin(tzname,tzrevision,tzremote)
-                
+
             elif project.tag == "default":
                   default_remote = project.attrib['remote']
             elif project.tag == "remote":
@@ -295,23 +295,23 @@ def parse_manifest_xml( src, remote_dico={}, packages_dico={}, alias_dico={} ):
                     alias_dico[scr].append(name)
             else:
                 print "ERROR",project.tag
-         
+
     if default_remote is not None:
          for attr in packages_dico.keys():
              if packages_dico[attr].remote is None:
                  packages_dico[attr].remote=default_remote
-         
+
     return  remote_dico,  packages_dico, alias_dico
 
 def get_package_manifest_xml( src ):
     remote_dico,  packages_dico, alias_dico = parse_manifest_xml( src )
-    
+
     packages_list=packages_dico.keys()
-    for package_name in packages_list: 
-        if package_name in alias_dico.keys(): 
-            for p_alias in alias_dico[package_name]: 
+    for package_name in packages_list:
+        if package_name in alias_dico.keys():
+            for p_alias in alias_dico[package_name]:
                 packages_list.append(p_alias)
-    
+
     packages_list.sort()
     return  packages_list
 
@@ -343,39 +343,39 @@ def parse_alias_file( src ):
     aliastxt=aliasFile.read()
     aliasFile.close()
     res={}
-    
+
     for line in aliastxt.split("\n"):
       tmp_res= line.split(" ")
       if len(tmp_res)>=2:
           res[ tmp_res[0] ] = tmp_res[1:]
-    
+
     return res
-  
+
 def parse_blacklist_file( src ):
     aliasFile = open( src, "r" )
     aliastxt=aliasFile.read()
     aliasFile.close()
     res=[]
-    
+
     for line in aliastxt.split("\n"):
       res.append(line)
-    
+
     return res
- 
+
 def clean_revision( raw_name ):
     if "-" in raw_name:
         return raw_name.split( "-" )[0]
     else:
         return raw_name
- 
+
 start_manifext_xml='''<?xml version="1.0" encoding="UTF-8"?>
 <manifest  xmlns:tz="http://tizen.org">\n'''
 end_manifext_xml='''</manifest>'''
- 
+
 def generate_manifest(remote_dico, packages_dico, alias_dico={}, blacklist_list=[]):
-    
+
     file_res = start_manifext_xml
-    
+
     list_package_tmp = packages_dico.keys()
     list_package_tmp.sort()
     default_remote="tizen-gerrit"
@@ -386,76 +386,76 @@ def generate_manifest(remote_dico, packages_dico, alias_dico={}, blacklist_list=
           if packages_dico[package_name].remote == remote:
               have_remote=True
               break
-      if have_remote:    
+      if have_remote:
           file_res+="    <remote fetch=\"%s\" name=\"%s\" />\n" % (fetch,remote)
-    
+
     if default_remote not in remote_dico.keys():
       default_remote=None
     else:
       file_res+="    <default remote=\"%s\"/>\n" % default_remote
-    
+
 
     list_package=[]
-    
-    for package_name in list_package_tmp: 
+
+    for package_name in list_package_tmp:
         if package_name not in blacklist_list:
             list_package.append(package_name)
             if package_name in alias_dico.keys():
                 for p_alias in alias_dico[package_name]:
                     file_res+="    <tz:alias scr=\"%s\" name=\"%s\"/>\n" % (package_name,p_alias)
-            
+
     list_package.sort()
     for package_name in list_package:
           file_res+=packages_dico[package_name].get_xml_line(default_remote)
-          
+
     file_res+=end_manifext_xml
     return file_res
 
 def merge_manifest(blacklist_file,alias_file,manifest_xml_srcs,manifest_xml_dst):
-  
+
     if alias_file is not None or alias_file == "":
         alias_dico= parse_alias_file( alias_file )
     else:
         alias_dico={}
-        
+
     if blacklist_file is not None or blacklist_file == "":
         blacklist_list=parse_blacklist_file(blacklist_file)
     else:
         blacklist_list=[]
-    
+
     packages_dico={}
     remote_dico={}
     for manifest_xml_src in manifest_xml_srcs:
         remote_dico, packages_dico, alias_dico = parse_manifest_xml(manifest_xml_src, remote_dico, packages_dico, alias_dico )
-    
+
     res=generate_manifest(remote_dico, packages_dico, alias_dico, blacklist_list)
     file_res= open(manifest_xml_dst,"w")
     file_res.write(res)
     file_res.close()
-    
+
     return 0
 
 def create_package_from_manifest(project_dir, manifest_xml_src):
     project_dir = os.path.abspath( project_dir )
     manifest_xml_src = os.path.abspath( manifest_xml_src )
-    
-    
+
+
     if not os.path.isdir( project_dir ):
         error_message = "%s is not a directory."
         print  error_message % ( project_dir )
         sys.exit( 1 )
-    
-    
+
+
     remote_dico, packages_dico, alias_dico = parse_manifest_xml( manifest_xml_src )
-    
-    
+
+
     for package_name in packages_dico.keys():
         git_package= packages_dico[package_name]
 
         fetch=remote_dico[git_package.remote]
         if "//" in fetch:
             fetch=fetch.split("//")[1]
-        
+
         write_package_service( fetch,
                                project_dir,
                                package_name,
@@ -496,14 +496,14 @@ _service_template_tizen = """<services>
 
 def create_service( fetch, git_name, revision, package_name ):
     return _service_template_tizen% ( revision, fetch, git_name  )
-  
-    #if package_name is None: 
+
+    #if package_name is None:
     #  return _service_template_2 % ( fetch, git_name, revision )
     #else:
     #  return _service_template_1 % ( fetch, git_name, revision, package_name )
-      
-    
-  
+
+
+
 def write_package_service( fetch, project_dir, package_name , git_name, package_revision ):
     service = create_service( fetch, git_name, package_revision, package_name )
     pkgPath = project_dir + "/" + package_name
@@ -538,42 +538,42 @@ class Git_Package:
     self.name=git_name
     self.revision=revision
     self.remote=remote
-    
+
     self.tz_origin_name=None
     self.tz_origin_revision=None
     self.tz_origin_remote=None
-    
+
   def set_origin(self,name,revision,remote):
     self.tz_origin_name=name
     self.tz_origin_revision=revision
     self.tz_origin_remote=remote
-    
+
   def __have_origin(self):
     return self.tz_origin_name is not None and \
            self.tz_origin_revision is not None and \
            self.tz_origin_remote is not None
-    
+
   def get_update_package(self):
     if self.__have_origin():
        return Git_Package(self.tz_origin_name, self.path, self.tz_origin_revision, self.tz_origin_remote)
     else:
        return self
-    
+
   def get_xml_line(self,default_remote=None):
      if default_remote is None or default_remote != self.remote:
        remote_tag = "remote=\"%s\"" % self.remote
      else:
        remote_tag = ""
-         
+
      if self.__have_origin():
        remote_origin = "tz:origin_name=\"%s\"  tz:origin_revision=\"%s\" tz:origin_remote=\"%s\"" %(self.tz_origin_name, self.tz_origin_revision, self.tz_origin_remote)
      else:
        remote_origin = ""
-         
+
      xml_line = "    <project name=\"%s\" path=\"%s\" revision=\"%s\" %s %s />\n" % (self.name, clean_path( self.path ), self.revision, remote_tag, remote_origin)
-  
+
      return xml_line
-    
+
 class CommitRemote:
   def __init__(self):
     self.tag=None
@@ -581,10 +581,10 @@ class CommitRemote:
     self.commit=None
     self.alias_commit=None
     self.date_tag=None
-    
+
     self.alias_sha=None
     self.sha=None
-    
+
   def setCommitValue(self,date_tag,sha) :
     if date_tag.endswith("^{}"):
       self.alias_tag=date_tag
@@ -594,15 +594,15 @@ class CommitRemote:
       self.tag=date_tag
       self.sha=sha
     self.date_tag=getTagDate(self.tag)
-    
+
   def getSha(self):
     if self.alias_sha is not None:
       return self.alias_sha
     else:
       return self.sha
-    
-    
-    
+
+
+
 
 class CommitCollection:
   def __init__(self,  gitTag):
@@ -610,7 +610,7 @@ class CommitCollection:
     self.__origin_tag = gitTag
     self.__origin_date_tag = getTagDate(gitTag)
     self.__origin_sha = None
-  
+
   def __have_a_valid_date(self,test_date=None):
     #What is a valid date?
     #TODO ???
@@ -621,20 +621,20 @@ class CommitCollection:
     if len("20121215.161330") == len(test_date) and \
        test_date.count(".") == 1:
          return True
-    
+
     return False
-  
+
   def initFromString(self, tag_list):
     for tag_line in tag_list.split("\n"):
         sha, clean_tag= cleanTag_line(tag_line)
-        
+
         commit_key=clean_tag
         if commit_key.endswith("^{}"):
             commit_key=commit_key[:-3]
-            
+
         if commit_key not in self.commit_dico.keys():
             self.commit_dico[commit_key]=CommitRemote()
-            
+
         self.commit_dico[commit_key].setCommitValue(clean_tag,sha)
 
   def __check_origin_sha(self):
@@ -644,7 +644,7 @@ class CommitCollection:
           return True
       elif self.commit_dico[commit_key].getSha() == self.__origin_tag:
           return True
-          
+
     return False
 
   def get_candidates(self):
@@ -654,15 +654,15 @@ class CommitCollection:
              if self.commit_dico[commit_key].getSha() != self.__origin_sha:
                   res.append(commit_key)
     return res
-         
+
   def have_newer_tag(self):
     if self.__origin_date_tag is not None and not self.__have_a_valid_date():
       return False
-    
+
     if not self.__check_origin_sha():
       print "No sha for commit origine"
       return False
-    
+
     candidates_list=self.get_candidates()
 
     self.newer_commit=None
@@ -674,10 +674,10 @@ class CommitCollection:
            self.newer_commit_date=self.commit_dico[candidate].date_tag
 
     return self.newer_commit is not None
-  
+
   def getLastTag(self):
     return self.commit_dico[self.newer_commit].tag
-  
+
   def is_newer(self, candidate):
     candidate_date=self.commit_dico[candidate].date_tag
     if candidate_date is None:
@@ -685,11 +685,11 @@ class CommitCollection:
     elif self.__origin_date_tag is None and self.newer_commit is None:
       return True
     elif self.newer_commit is None:
-        return candidate_date > self.__origin_date_tag 
+        return candidate_date > self.__origin_date_tag
     else:
         return (candidate_date > self.__origin_date_tag ) and ( candidate_date > self.newer_commit_date)
-    
-    
+
+
 def getTagDate(clean_tag):
   if not "/tizen/" in clean_tag:
     return None
@@ -701,23 +701,23 @@ def getTagDate(clean_tag):
 def checkRemote(remote_dico,packages_dico):
     global TO_EXIT
     subProcessor=SubprocessCrt()
-      
+
     list_package=packages_dico.keys()
     list_package.sort()
     i=1
-    
+
     for package_name in list_package:
       if TO_EXIT:
         break
       print "package %s    %s/%s" % ( package_name, i, len(list_package) )
-      
-      git_package = packages_dico[package_name].get_update_package() 
+
+      git_package = packages_dico[package_name].get_update_package()
       packages_dico[package_name]=git_package
-      
+
       remote=remote_dico[git_package.remote]
       if "//" in remote:
             remote=remote.split("//")[1]
-            
+
       cmd="git ls-remote --tags %s:%s" % (remote, git_package.name)
       try:
         tag_list=subProcessor.exec_subprocess(cmd)
@@ -727,35 +727,35 @@ def checkRemote(remote_dico,packages_dico):
       if type(tag_list) == type(-1):
           i=i+1
           continue
-      
+
       commitCol=CommitCollection( packages_dico[package_name].revision)
       commitCol.initFromString(tag_list)
-        
+
       if commitCol.have_newer_tag():
           lastTag=commitCol.getLastTag()
           print "Tag ",lastTag," is newer then ",packages_dico[package_name].revision
-          packages_dico[package_name].revision = lastTag          
+          packages_dico[package_name].revision = lastTag
       i=i+1
-      
+
     return packages_dico
 
 def update_manifest(manifest_src, manifest_dst ):
     remote_dico, packages_dico, alias_dico = parse_manifest_xml( manifest_src )
     packages_dico=checkRemote(remote_dico,packages_dico)
-    
+
     res=generate_manifest(remote_dico, packages_dico, alias_dico)
     file_res= open(manifest_dst,"w")
     file_res.write(res)
     file_res.close()
-    
+
     return 0
 
 class update_project_manager_commandline( cmdln.Cmdln ):
     name = "update_project_manager"
     version = "0.1"
-    
+
     UPM_CONFIG = update_project_manager_config()
-    
+
     def do_list_project( self, subcmd, opts):
         """${cmd_name}: return the project list.
 
@@ -769,11 +769,11 @@ class update_project_manager_commandline( cmdln.Cmdln ):
         """${cmd_name}: return the proto directory.
 
         ${cmd_usage}--
-        ${cmd_option_list} 
+        ${cmd_option_list}
         """
         res = self.UPM_CONFIG.get_manifest_list( project )
         print " ".join( res )
-        
+
     def do_get_arch( self, subcmd, opts, project ):
         """${cmd_name}: return the proto directory.
 
@@ -808,12 +808,12 @@ class update_project_manager_commandline( cmdln.Cmdln ):
 
     def do_get_alias_file( self, subcmd, opts, project ):
         """${cmd_name}: return the proto directory.
-        
+
         ${cmd_usage}--
         ${cmd_option_list}
         """
         self.UPM_CONFIG.print_alias_file( project )
-        
+
     def do_get_blacklist_file( self, subcmd, opts, project ):
         """${cmd_name}: return the proto directory.
 
@@ -821,7 +821,7 @@ class update_project_manager_commandline( cmdln.Cmdln ):
         ${cmd_option_list}
         """
         self.UPM_CONFIG.print_blacklist_file( project )
-        
+
     def do_update_manifest( self, subcmd, opts, manifest_src, manifest_dst ):
         """${cmd_name}: return the proto directory.
 
@@ -829,7 +829,7 @@ class update_project_manager_commandline( cmdln.Cmdln ):
         ${cmd_option_list}
         """
         return update_manifest(manifest_src, manifest_dst )
-        
+
     @cmdln.option( "--blacklist",
                   action = "store",
                   default = None,
@@ -867,7 +867,7 @@ class update_project_manager_commandline( cmdln.Cmdln ):
 
 def main():
     commandline = update_project_manager_commandline()
-    
+
     try:
         res = commandline.main()
     except ValueError as ve:
