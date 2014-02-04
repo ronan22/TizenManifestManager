@@ -100,7 +100,7 @@ def main():
         if arch is None:
             print "no arch define."
             sys.exit( 1 )
-
+        manifest_name = "%s_%s.xml" % ( project_id, arch )
         manifest_url = project_base_url + "/builddata/manifest/" + manifest_name
     else:
         manifest_url = project_base_url
