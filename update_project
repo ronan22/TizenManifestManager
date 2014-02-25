@@ -23,6 +23,7 @@ WORKINGDIR="/tmp/obs"
 OBS_API=
 OSC_CMD="osc"
 RM_CMD="rm -fr"
+XMLLINT=$(which xmllint)
 
 DRYRUN=
 
@@ -45,6 +46,12 @@ fi
 if  [ -z "${OBS_API}" ] ; then
   echo no API configurate for the OBS, please set OBS_API parameter.
   exit 1
+fi
+
+#if no xmllint, exit
+if [ -z "${XMLLINT}" ]; then
+	echo "Please install xmllint"
+	exit 1
 fi
 
 #Create the WORKINGDIR directory.
@@ -114,6 +121,7 @@ for PROJECT in ${PROJECT_LIST}; do
   echo update_project_manager get_alias_file ${PROJECT}
   ALIAS_FILE=$(update_project_manager get_alias_file ${PROJECT} )
   BLACKLIST_FILE=$(update_project_manager get_blacklist_file ${PROJECT} )
+  CONSTRAINTS_FILE=$(update_project_manager get_constraints_file ${PROJECT} )
 
   #If the Manifest is a project URL download it.
   if [[ ${ALIAS_FILE} =~ ^http.*$ ]] ; then
@@ -131,6 +139,12 @@ for PROJECT in ${PROJECT_LIST}; do
   fi
   if [ -n  "${BLACKLIST_FILE}" ] ; then
       BLACKLIST_FILE=" --blacklist ${BLACKLIST_FILE}"
+  fi
+
+  #If the constraints is an URL download it.
+  if [[ ${CONSTRAINTS_FILE} =~ ^http.*$ ]] ; then
+    curl ${CONSTRAINTS_FILE} > ${WORKINGDIR}/$(basename ${CONSTRAINTS_FILE})
+    CONSTRAINTS_FILE=${WORKINGDIR}/$(basename ${CONSTRAINTS_FILE})
   fi
 
   MANIFEST_FILES_LIST=""
@@ -151,7 +165,15 @@ for PROJECT in ${PROJECT_LIST}; do
       download_manifest ${LOCAL_MANIFEST_FILE} ${MANIFEST_FILE} ${ARCH}
       MANIFEST_FILE=${LOCAL_MANIFEST_FILE}
     fi
+
     echo
+
+    # check manifest file
+    if ! xmllint --noout ${MANIFEST_FILE}; then
+      echo "Manifest check failed: ${MANIFEST_FILE}"
+      exit 1
+    fi
+
     echo "    add manifest: ${MANIFEST_FILE}"
     echo
     MANIFEST_FILES_LIST="${MANIFEST_FILES_LIST} ${MANIFEST_FILE}"
@@ -194,6 +216,31 @@ for PROJECT in ${PROJECT_LIST}; do
         echo ${OSC_CMD} rm ${old_package};
         ${OSC_CMD} rm ${old_package};
       done
+  fi
+
+  # generate build constraints
+  if [[ -n "$CONSTRAINTS_FILE" ]]; then
+    echo "Applying constraints"
+    sed 's/#.*$//g' ${CONSTRAINTS_FILE} | while read pkgname label; do
+        [[ -z "$pkgname" ]] && continue
+        if [[ -z "$label" ]]; then
+            echo "Invalid constraint for package $pkgname: invalid label"
+            continue
+        fi
+
+        if [[ ! -d $pkgname ]]; then
+            echo "Skipping constraint for non existing package $pkgname"
+            continue
+        fi
+
+        # generate constraint file
+        echo "Generating constraints for $pkgname"
+        [[ -z "$DRYRUN" ]] && cat <<EOF >$pkgname/_constraints
+<constraints> 
+  <hostlabel>$label</hostlabel>
+</constraints>
+EOF
+    done
   fi
 
   #commit all change

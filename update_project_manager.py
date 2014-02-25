@@ -242,6 +242,13 @@ class update_project_manager_config( object ):
         if val is not None:
             print val[0]
 
+    def print_constraints_file( self, project ):
+        '''
+        function to print constraints of project.
+        '''
+        val = self.__get_list( project, "constraints", None )
+        if val is not None:
+            print val[0]
 
 
 def clean_path( raw_name ):
@@ -821,6 +828,14 @@ class update_project_manager_commandline( cmdln.Cmdln ):
         ${cmd_option_list}
         """
         self.UPM_CONFIG.print_blacklist_file( project )
+
+    def do_get_constraints_file( self, subcmd, opts, project ):
+        """${cmd_name}: return the proto directory.
+
+        ${cmd_usage}--
+        ${cmd_option_list}
+        """
+        self.UPM_CONFIG.print_constraints_file( project )
 
     def do_update_manifest( self, subcmd, opts, manifest_src, manifest_dst ):
         """${cmd_name}: return the proto directory.
