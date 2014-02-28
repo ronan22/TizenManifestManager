@@ -1,5 +1,3 @@
-%define service gbp_git
-
 Name:           TizenManifestManager
 Version:        0.1
 Release:        1
@@ -16,29 +14,12 @@ BuildRequires:  python >= 2.6
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildArch:      noarch
 
-Requires:	%{service} 
 Requires:	osc 
 
 %description 
 This is a source service for openSUSE Build Service.
 
-It supports downloading from git repositories by gbp.
-
-
-
-%package -n %{service}
-Summary:        An OBS source service: checkout or update a tar ball from git by gbp
-Group:          Development/Tools/Building
-Requires:       bzr
-Requires:       git
-Requires:       git-buildpackage-rpm
-
-%description -n %{service}
-This is a source service for openSUSE Build Service.
-
-It supports downloading from git repositories by gbp.
-
-
+It supports downloading from git repositories by gbs.
 
 %prep
 %setup -q
