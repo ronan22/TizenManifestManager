@@ -270,6 +270,10 @@ def parse_manifest_xml( src, remote_dico={}, packages_dico={}, alias_dico={} ):
                 else:
                     git_path =  git_name
 
+                # remove .git extension if any
+                git_path = re.sub("\.git$","",git_path)
+                git_name = re.sub("\.git$","",git_name)
+
                 revision = clean_revision( project.attrib['revision'] )
 
                 if 'remote' in  project.attrib:
