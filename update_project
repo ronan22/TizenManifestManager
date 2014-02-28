@@ -186,6 +186,10 @@ for PROJECT in ${PROJECT_LIST}; do
 
   echo  update_project_manager merge_project_manifest ${BLACKLIST_FILE} ${ALIAS_FILE} --manifest_dst ${MAIN_MANIFEST} ${MANIFEST_FILES_LIST}
   update_project_manager merge_project_manifest ${BLACKLIST_FILE} ${ALIAS_FILE} --manifest_dst ${MAIN_MANIFEST} ${MANIFEST_FILES_LIST}
+  if [[ $? -ne 0 ]]; then
+	echo "update_project_manager merge_project_manifest failed. Skipping project"
+	continue
+  fi
 
   NEW_PKG_LIST=$(update_project_manager list_package ${MAIN_MANIFEST})
 
@@ -194,6 +198,10 @@ for PROJECT in ${PROJECT_LIST}; do
   echo $(pwd)
   echo update_project_manager  create_package_from_manifest --project_dir ${WORKINGDIR}/${PROJECT} ${MAIN_MANIFEST}
   update_project_manager  create_package_from_manifest --project_dir ${WORKINGDIR}/${PROJECT} ${MAIN_MANIFEST}
+  if [[ $? -ne 0 ]]; then
+	echo "update_project_manager create_package_from_manifest failed. Skipping project"
+	continue
+  fi
 
   echo check new package into project ${PROJECT}.
   cd ${PROJECT}
