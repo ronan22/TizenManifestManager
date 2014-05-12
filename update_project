@@ -125,7 +125,7 @@ for PROJECT in ${PROJECT_LIST}; do
 
   #If the Manifest is a project URL download it.
   if [[ ${ALIAS_FILE} =~ ^http.*$ ]] ; then
-    curl ${ALIAS_FILE} > ${WORKINGDIR}/$(basename ${ALIAS_FILE})
+    curl -L ${ALIAS_FILE} > ${WORKINGDIR}/$(basename ${ALIAS_FILE})
     ALIAS_FILE=${WORKINGDIR}/$(basename ${ALIAS_FILE})
   fi
   if [ -n  "${ALIAS_FILE}" ] ; then
@@ -134,7 +134,7 @@ for PROJECT in ${PROJECT_LIST}; do
 
   #If the Manifest is a project URL download it.
   if [[ ${BLACKLIST_FILE} =~ ^http.*$ ]] ; then
-    curl ${BLACKLIST_FILE} > ${WORKINGDIR}/$(basename ${BLACKLIST_FILE})
+    curl -L ${BLACKLIST_FILE} > ${WORKINGDIR}/$(basename ${BLACKLIST_FILE})
     BLACKLIST_FILE=${WORKINGDIR}/$(basename ${BLACKLIST_FILE})
   fi
   if [ -n  "${BLACKLIST_FILE}" ] ; then
@@ -143,7 +143,7 @@ for PROJECT in ${PROJECT_LIST}; do
 
   #If the constraints is an URL download it.
   if [[ ${CONSTRAINTS_FILE} =~ ^http.*$ ]] ; then
-    curl ${CONSTRAINTS_FILE} > ${WORKINGDIR}/$(basename ${CONSTRAINTS_FILE})
+    curl -L ${CONSTRAINTS_FILE} > ${WORKINGDIR}/$(basename ${CONSTRAINTS_FILE})
     CONSTRAINTS_FILE=${WORKINGDIR}/$(basename ${CONSTRAINTS_FILE})
   fi
 
