@@ -33,24 +33,13 @@ class HTTPAccessFailure( Exception ):
     '''Indicate the http access failed'''
 
 def download_url( url ):
+    print "Opening url %s " % url
     r = urlopen( url )
     if r.code != 200:
         raise HTTPAccessFailure()
     page = r.read()
 
     return page
-
-def download_manifest_url( url ):
-    r = urlopen( url )
-    if r.code != 200:
-        raise HTTPAccessFailure()
-    page = r.read()
-
-    return page
-
-def download_build_xml( url ):
-    return download_url( url + "/builddata/build.xml" )
-
 
 def get_project_id( xml ):
     aElement = ElementTree.fromstring( xml )
@@ -60,55 +49,35 @@ def get_project_id( xml ):
             if project.tag == "id":
                 return project.text
 
-def get_project_arch( xml ):
-    aElement = ElementTree.fromstring( xml )
-    arch_list = []
-    for value in aElement:
-        for project in value.getiterator():
-            if project.tag == "archs":
-                for arch in project.getiterator():
-                    if arch.tag == "arch":
-                        arch_list.append( arch.text )
-
-    return arch_list
-
-
-
 def main():
-    if len( sys.argv ) < 3 :
-        error_message = "%s take 3 parameters at least one parameter, file_dst, project_base_url and arch."
+    if len( sys.argv ) < 2 :
+        error_message = "%s take 2 parameters: file_dst, manifest_url"
         print  error_message % ( sys.argv[0] )
         sys.exit( 1 )
 
     file_dst = sys.argv[1]
-    project_base_url = sys.argv[2]
+    manifest_url = sys.argv[2]
 
-    if len( sys.argv ) >= 4:
-        arch = sys.argv[3]
-    else:
-        arch = None
-
-    if not project_base_url.endswith(".xml"):
-        xml_str = download_build_xml( project_base_url )
+    if manifest_url.index("@SNAPSHOT_ID@"):
+        # extract project base url based on builddata subdir
+        print "Resolving @SNAPSHOT_ID@..."
+        idx = manifest_url.index("/builddata/");
+        if ( idx <= 0 ):
+            print "Unable to find builddata dir in manifest URL"
+            sys.exit(1)
+        project_base_url = manifest_url[:idx]
+        xml_str = download_build_xml( project_base_url + "/build.xml")
         project_id = get_project_id( xml_str )
-
-        list_arch = get_project_arch( xml_str )
-
-        if ( arch is None ) and ( len( list_arch ) > 0 ):
-            arch = list_arch[0]
-
-        if arch is None:
-            print "no arch define."
-            sys.exit( 1 )
-        manifest_name = "%s_%s.xml" % ( project_id, arch )
-        manifest_url = project_base_url + "/builddata/manifest/" + manifest_name
-    else:
-        manifest_url = project_base_url
-
-    manifest_xml = download_manifest_url( manifest_url )
+        print "Found snapshot %s" % project_id
+        manifest_url = manifest_url.replace("@SNAPSHOT_ID@",project_id)
+        print "Resolved URL: %s" % manifest_url
+        
+    manifest_xml = download_url( manifest_url )
 
     with open( file_dst, 'w' ) as a_file:
         a_file.write( manifest_xml )
+
+    print "Done."
 
 
 if __name__ == '__main__':
