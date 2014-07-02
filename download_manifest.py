@@ -66,7 +66,7 @@ def main():
             print "Unable to find builddata dir in manifest URL"
             sys.exit(1)
         project_base_url = manifest_url[:idx]
-        xml_str = download_build_xml( project_base_url + "/build.xml")
+        xml_str = download_url( project_base_url + "/build.xml")
         project_id = get_project_id( xml_str )
         print "Found snapshot %s" % project_id
         manifest_url = manifest_url.replace("@SNAPSHOT_ID@",project_id)
