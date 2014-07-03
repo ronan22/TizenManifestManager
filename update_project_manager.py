@@ -393,6 +393,9 @@ def generate_manifest(remote_dico, packages_dico, alias_dico={}, blacklist_list=
     default_remote="tizen-gerrit"
     for remote in remote_dico.keys():
       fetch=remote_dico[remote]
+      if ( fetch == "None" ):
+          fetch="ssh://review.tizen.org"
+
       have_remote=False
       for package_name in list_package_tmp:
           if packages_dico[package_name].remote == remote:
