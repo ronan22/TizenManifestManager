@@ -58,10 +58,10 @@ def main():
     file_dst = sys.argv[1]
     manifest_url = sys.argv[2]
 
-    if manifest_url.index("@SNAPSHOT_ID@"):
+    if manifest_url.find("@SNAPSHOT_ID@"):
         # extract project base url based on builddata subdir
         print "Resolving @SNAPSHOT_ID@..."
-        idx = manifest_url.index("/builddata/");
+        idx = manifest_url.find("/builddata/");
         if ( idx <= 0 ):
             print "Unable to find builddata dir in manifest URL"
             sys.exit(1)
