@@ -1,5 +1,5 @@
 Name:           TizenManifestManager
-Version:        0.1
+Version:        0.1.1
 Release:        1
 Summary:        An OBS source service: checkout or update a tar ball from git by gbp
 License:        GPL-2.0+
@@ -14,16 +14,16 @@ BuildRequires:  python >= 2.6
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildArch:      noarch
 
-Requires:	osc 
+Requires:	osc
 
-%description 
+%description
 This is a source service for openSUSE Build Service.
 
 It supports downloading from git repositories by gbs.
 
 %prep
 %setup -q
- 
+
 %build
 
 %install
@@ -51,7 +51,7 @@ ln -s update_project_manager.py %{buildroot}%{_bindir}/update_project_manager
 
 %dir %{_sysconfdir}/%{name}
 %config(noreplace) %attr(0644,root,root) %{_sysconfdir}/%{name}/update_project.conf
- 
+
 %{_bindir}/update_project_manager
 %{_bindir}/update_project_manager.py
 
