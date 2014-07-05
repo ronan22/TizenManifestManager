@@ -226,12 +226,12 @@ for PROJECT in ${PROJECT_LIST}; do
   if [ -z "${DRYRUN}" ] ; then
       for old_package in ${PACKAGE_TO_DEL} ; do
         #remove unused package (only if not an aggregate).
-		if [ -f ${old_package}/_aggregate ]; then
-			echo "Keeping aggregate package ${old_package}"
-		else
-			echo ${OSC_CMD} rm ${old_package};
-			${OSC_CMD} rm ${old_package};
-		fi
+        if [[ -f "${old_package}/_aggregate" ]]; then
+           echo "Keeping aggregate package ${old_package}"
+        else
+           echo ${OSC_CMD} rm ${old_package};
+           ${OSC_CMD} rm ${old_package};
+        fi
       done
   fi
 
