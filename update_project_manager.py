@@ -341,7 +341,7 @@ def project_is_disable( meta_project_file ):
         for project in value.getiterator():
             if project.tag == "build":
                 for build in value.getiterator():
-                    if build.tag == "disable":
+                    if (build.tag == "disable") and not build.attrib:
                         print "yes"
                         return 0
 
